@@ -1,6 +1,6 @@
 # Extending `Narratore`
 
-> Most code examples in this document are taken from the `AdvancedSetting` module of the companion package.
+> Most code examples in this document are taken from the `AdvancedSetting` module of the [companion package](https://github.com/broomburgo/SimpleGame).
 
 `Narratore` is designed to be extendable in ways that are easy to achieve but sufficiently sophisticated to be able to build complex game systems form a simple foundation. Because everything is based on types, protocols and constrains, and because basically all types in `Narratore` are parametrized with the generic `Game: Setting`, including result builders, it's possible to build libraries that incrementally add more features to a game setting.
 

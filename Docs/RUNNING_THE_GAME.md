@@ -1,6 +1,6 @@
 #  Running the game
 
-> All the code examples in this document are taken from the `SimpleHandler` and `SimpleGame` modules of the companion package.
+> All the code examples in this document are taken from the `SimpleHandler` and `SimpleGame` modules of the [companion package](https://github.com/broomburgo/SimpleGame).
 
 The essential tool for running a game built with `Narratore` is the `Runner` actor. In turn. `Runner` uses an instance of some type that conforms to the `Handler` protocol in order to communicate with the game engine (thus, with the player) and send it the various game events, like new narration steps, or choices to make. Before diving into `Runner`, let's see what's required from a `Handler` type.
 

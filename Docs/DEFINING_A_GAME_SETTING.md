@@ -1,6 +1,6 @@
 #  Defining a game setting
 
-> All the code examples in this document are taken from the `SimpleSetting` module of the companion package.
+> All the code examples in this document are taken from the `SimpleSetting` module of the [companion package](https://github.com/broomburgo/SimpleGame).
 
 A game `Setting` declares the types used to a make a specific story unique. In order to define a `Game` in `Narratore`, we need to declare a game type, and make it conform to `Setting`:
 

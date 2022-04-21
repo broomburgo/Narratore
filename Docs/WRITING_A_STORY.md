@@ -1,6 +1,6 @@
 #  Writing a story
 
-> All the code examples in this document are taken from the `SimpleStory` module of the companion package. The structure of the story written in that module is purposely contrived, in order to show several features of `Narratore`.
+> All the code examples in this document are taken from the `SimpleStory` module of the [companion package](https://github.com/broomburgo/SimpleGame). The structure of the story written in that module is purposely contrived, in order to show several features of `Narratore`.
 
 The defining feature of `Narratore` is that a story is Swift Package. A key design choice in `Narratore` was to avoid representing stories in loosely typed formats, and take advantage of the full power of the Swift compiler to produce stories with state, choices, branching paths et cetera. To be able to write stories in a "natural" format, that doesn't look too much like code, `Narratore` makes heavy use of `@resultBuilder` to define a simple DSL that can help focusing on the narration itself. This documents provides a summary of the main features of `Narratore` when it comes to writing stories, and to do that the document follows an actual story that was written to showcase some of these features. You can check the story yourself: it's fully contained in the `SimpleStory` module of the companion package.
 

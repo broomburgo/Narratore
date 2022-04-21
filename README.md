@@ -2,7 +2,7 @@
 
 `Narratore` is a Swift library that can be used to create and run interactive stories and narrative games.
 
-With `Narratore` you can create stories using a DSL that allows to focus on the narration, with very few lines of code: in `Narratore` __a story is a Swift Package__.
+With `Narratore` you can create stories using a DSL that allows to focus on the narration, with very few lines of code. In `Narratore` __a story is a Swift Package__.
 
 The library also makes it easy to run a story, with a callback-based handler.
 
@@ -201,6 +201,10 @@ To learn about the detail of each main component of `Narratore`, check the follo
 
 To learn how to extend `Narratore` and define modular components, check out [Extending Narratore](Docs/EXTENDING_NARRATORE.md).
 
-The linked docs progressively build a basic game setting, a short story, a simple command-line runner, and some extension, each of which can be found in a companion package called `SimpleGame`, whose purpose is to show the basics of `Narratore` in practice via the construction of an actual story that can be run from the command line.
+The linked docs progressively build a basic game setting, a short story, a simple command-line runner, and some extension, each of which can be found in a companion package called [SimpleGame](https://github.com/broomburgo/SimpleGame), whose purpose is to show the basics of `Narratore` in practice via the construction of an actual story that can be run from the command line.
 
-Thanks for checking out `Narratore`, I hope you'll have fun it!
+Thanks for checking out `Narratore`, I hope you'll have fun with it!
+
+## Requirements
+
+`Narratore` requires `iOS 13` and `macOS 10.15`, and has no third-party dependencies.
