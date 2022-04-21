@@ -208,3 +208,7 @@ Thanks for checking out `Narratore`, I hope you'll have fun with it!
 ## Requirements
 
 `Narratore` requires `iOS 13` and `macOS 10.15`, and has no third-party dependencies.
+
+## Acknowledgments
+
+`Narratore` was heavily inspired by [Ink](https://www.inklestudios.com/ink/), and its initial purpose was to be a similar story creation engine, but with the possibility of defining stories in Swift, instead of using a markup language. Nevertheless, the Ink specification was a strong inspiration for the features of `Narratore`.
