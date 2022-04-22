@@ -203,6 +203,8 @@ To learn how to extend `Narratore` and define modular components, check out [Ext
 
 The linked docs progressively build a basic game setting, a short story, a simple command-line runner, and some extension, each of which can be found in a companion package called [SimpleGame](https://github.com/broomburgo/SimpleGame), whose purpose is to show the basics of `Narratore` in practice via the construction of an actual story that can be run from the command line.
 
+The main purpose of the companion package is to document the features of `Narratore`; nevertheless, most of its code is generic and reusable, and can be used to create games: please refer to the companion package [README](https://github.com/broomburgo/SimpleGame) to learn how to use it in your projects.
+
 Thanks for checking out `Narratore`, I hope you'll have fun with it!
 
 ## Requirements
