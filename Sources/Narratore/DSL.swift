@@ -56,7 +56,7 @@ public func then<B: Branch>(
 
 /// Creates a step that will be skipped; useful to establish a simple anchor that will not make the player acknowledge a narration or make a choice.
 public func skip<B: Branch>(_ anchor: B.Anchor? = nil) -> BranchStep<B> {
-  .init(anchor: anchor, getStep: .init { _ in .init() })
+  .init(anchor: anchor, getStep: .init { _ in .skip })
 }
 
 /// Groups branch steps together.
@@ -95,7 +95,7 @@ public func choose<Game: Setting>(tags: [Game.Tag] = [], @OptionsBuilder<Game> g
 
 /// Equivalent to calling `Step.init()`, which produces and empty step that will be skipped, but more ergonomic when used in `StepBuilder`.
 public func skip<Game: Setting>() -> Step<Game> {
-  .init()
+  .skip
 }
 
 extension String {

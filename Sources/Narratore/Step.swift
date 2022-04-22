@@ -28,17 +28,17 @@ public struct Step<Game: Setting> {
 public typealias Outcome<Game: Setting> = Next<Game, BranchChange<Game>?>.Action
 
 extension Step {
-  public init() {
-    self.init { _, _ in .advance(nil) }
+  public static var skip: Self {
+    .init { _, _ in .advance(nil) }
   }
 
   public init(choice: Choice<Game>) {
+    guard !choice.options.isEmpty else {
+      self = .skip
+      return
+    }
+    
     self.init { info, handling in
-      guard !choice.options.isEmpty else {
-        handling.handle(event: .errorProduced(.noOptions(choice: choice)))
-        return .stop
-      }
-      
       let playerOptions = choice.options.map {
         Player<Game>.Option.init(
           id: Game.Generate.uniqueString(),

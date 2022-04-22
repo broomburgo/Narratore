@@ -11,7 +11,7 @@ public enum StepBuilder<Game: Setting> {
   }
 
   public static func buildOptional(_ component: Component?) -> Component {
-    component ?? .init()
+    component ?? .skip
   }
 
   public static func buildEither(first component: Component) -> Component {
