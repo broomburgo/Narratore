@@ -67,7 +67,7 @@ extension BranchChange {
     _ branch: B.Type,
     at anchor: B.Anchor? = nil,
     scene: B.Parent
-  ) -> Self where B.Game == Game {
+  ) -> Self where B.Parent.Game == Game {
     .init(action: .replaceWith, section: scene.steps(for: B.self, at: anchor))
   }
   
@@ -81,7 +81,7 @@ extension BranchChange {
     _ branch: B.Type,
     at anchor: B.Anchor? = nil,
     scene: B.Parent
-  ) -> Self where B.Game == Game {
+  ) -> Self where B.Parent.Game == Game {
     .init(action: .runThrough, section: scene.steps(for: B.self, at: anchor))
   }
   
@@ -95,7 +95,7 @@ extension BranchChange {
     _ branch: B.Type,
     at anchor: B.Anchor? = nil,
     scene: B.Parent
-  ) -> Self where B.Game == Game {
+  ) -> Self where B.Parent.Game == Game {
     .init(action: .transitionTo, section: scene.steps(for: B.self, at: anchor))
   }
   
