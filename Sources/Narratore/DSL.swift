@@ -1,7 +1,10 @@
-// MARK: - BranchStep
-
 /// Build a `BranchStep` out of a series of `Message`s.
-public func tell<B: Branch>(_ anchor: B.Anchor? = nil, tags: [B.Game.Tag] = [], @MessagesBuilder<B.Game> getMessages: @escaping (Context<B.Game>) -> [B.Game.Message], update: Update<B.Game>? = nil) -> BranchStep<B> {
+public func tell<B: Branch>(
+  _ anchor: B.Anchor? = nil,
+  tags: [B.Game.Tag] = [],
+  @MessagesBuilder<B.Game> getMessages: @escaping (Context<B.Game>) -> [B.Game.Message],
+  update: Update<B.Game>? = nil
+) -> BranchStep<B> {
   .init(anchor: anchor, getStep: .init {
     let messages = getMessages($0)
 
@@ -14,17 +17,27 @@ public func tell<B: Branch>(_ anchor: B.Anchor? = nil, tags: [B.Game.Tag] = [], 
 }
 
 /// Create a `BranchStep` conditionally, based on the current `Context`.
-public func check<B: Branch>(_ anchor: B.Anchor? = nil, @StepBuilder<B.Game> _ getStep: @escaping (Context<B.Game>) -> Step<B.Game>) -> BranchStep<B> {
+public func check<B: Branch>(
+  _ anchor: B.Anchor? = nil,
+  @StepBuilder<B.Game> _ getStep: @escaping (Context<B.Game>) -> Step<B.Game>
+) -> BranchStep<B> {
   .init(anchor: anchor, getStep: .init(getStep))
 }
 
 /// Update the current `World`.
-public func update<B: Branch>(_ anchor: B.Anchor? = nil, _ update: @escaping (inout B.Game.World) -> Void) -> BranchStep<B> {
+public func update<B: Branch>(
+  _ anchor: B.Anchor? = nil,
+  _ update: @escaping (inout B.Game.World) -> Void
+) -> BranchStep<B> {
   .init(anchor: anchor, getStep: .init { _ in .init(update: update) })
 }
 
 /// Make the player choose between options.
-public func choose<B: Branch>(_ anchor: B.Anchor? = nil, tags: [B.Game.Tag] = [], @OptionsBuilder<B.Game> getOptions: @escaping (Context<B.Game>) -> [Option<B.Game>]) -> BranchStep<B> {
+public func choose<B: Branch>(
+  _ anchor: B.Anchor? = nil,
+  tags: [B.Game.Tag] = [],
+  @OptionsBuilder<B.Game> getOptions: @escaping (Context<B.Game>) -> [Option<B.Game>]
+) -> BranchStep<B> {
   .init(
     anchor: anchor,
     getStep: .init {
@@ -60,7 +73,9 @@ public func skip<B: Branch>(_ anchor: B.Anchor? = nil) -> BranchStep<B> {
 }
 
 /// Groups branch steps together.
-public func group<B: Branch>(@BranchBuilder<B> _ getSteps: () -> [BranchStep<B>]) -> [BranchStep<B>] {
+public func group<B: Branch>(@BranchBuilder<B> _ getSteps: () -> [BranchStep<B>])
+  -> [BranchStep<B>]
+{
   getSteps()
 }
 
@@ -84,12 +99,19 @@ extension String {
 // MARK: - Step
 
 /// Build a `narration` step out of a series of `Message`s.
-public func tell<Game: Setting>(tags: [Game.Tag] = [], @MessagesBuilder<Game> getMessages: () -> [Game.Message], update: Update<Game>? = nil) -> Step<Game> {
+public func tell<Game: Setting>(
+  tags: [Game.Tag] = [],
+  @MessagesBuilder<Game> getMessages: () -> [Game.Message],
+  update: Update<Game>? = nil
+) -> Step<Game> {
   .init(narration: .init(messages: getMessages(), tags: tags, update: update))
 }
 
 /// Build a `choice` step out of a series of `Option`s.
-public func choose<Game: Setting>(tags: [Game.Tag] = [], @OptionsBuilder<Game> getOptions: @escaping () -> [Option<Game>]) -> Step<Game> {
+public func choose<Game: Setting>(
+  tags: [Game.Tag] = [],
+  @OptionsBuilder<Game> getOptions: @escaping () -> [Option<Game>]
+) -> Step<Game> {
   .init(choice: .init(options: getOptions(), tags: tags))
 }
 
@@ -106,7 +128,7 @@ extension String {
     update: Update<Game>? = nil
   ) -> Step<Game> {
     .init(
-      narration: self.with(id: id, tags: tags, update: update)
+      narration: with(id: id, tags: tags, update: update)
     )
   }
 
@@ -136,7 +158,11 @@ extension Narration {
 // MARK: - Narration
 
 /// Build a `narration` step out of a series of `Message`s.
-public func tell<Game: Setting>(tags: [Game.Tag] = [], @MessagesBuilder<Game> getMessages: () -> [Game.Message], update: Update<Game>? = nil) -> Narration<Game> {
+public func tell<Game: Setting>(
+  tags: [Game.Tag] = [],
+  @MessagesBuilder<Game> getMessages: () -> [Game.Message],
+  update: Update<Game>? = nil
+) -> Narration<Game> {
   .init(messages: getMessages(), tags: tags, update: update)
 }
 

@@ -31,8 +31,8 @@ struct AnySection<Game: Setting> {
   let startingIndex: Int
 
   init<B: Branch>(section: Section<B>, anchor: B.Anchor? = nil) where B.Parent.Game == Game {
-    self.steps = section.steps
-    self.startingIndex = anchor.flatMap {
+    steps = section.steps
+    startingIndex = anchor.flatMap {
       section.anchorIndices[$0]
     } ?? 0
   }
@@ -46,11 +46,11 @@ struct GetSection<B: Branch>: Codable & Hashable {
   private let scene: B.Parent
 
   init(scene: B.Parent) {
-    self.run = { .init(branchSteps: B.getSteps(for: scene)) }
-    self.id = B.id
+    run = { .init(branchSteps: B.getSteps(for: scene)) }
+    id = B.id
     self.scene = scene
   }
-  
+
   func callAsFunction() -> Section<B> {
     run()
   }
@@ -68,7 +68,7 @@ struct GetSection<B: Branch>: Codable & Hashable {
     case id
     case scene
   }
-  
+
   init(from decoder: Decoder) throws {
     let container = try decoder.container(keyedBy: CodingKeys.self)
     let id = try container.decode(String.self, forKey: .id)
@@ -91,8 +91,10 @@ public struct AnyGetSection<Game: Setting>: Hashable & Encodable {
 
   private let run: () -> AnySection<Game>
 
-  init<B: Branch>(_ getSection: GetSection<B>, at anchor: B.Anchor? = nil) where B.Parent.Game == Game {
-    self.run = {
+  init<B: Branch>(_ getSection: GetSection<B>, at anchor: B.Anchor? = nil)
+    where B.Parent.Game == Game
+  {
+    run = {
       .init(section: getSection(), anchor: anchor)
     }
     id = getSection.id
@@ -100,8 +102,8 @@ public struct AnyGetSection<Game: Setting>: Hashable & Encodable {
     hashableSource = AnyHashable(getSection)
     encoding = getSection.encode(to:)
   }
-  
-  func callAsFunction() -> AnySection<Game>{
+
+  func callAsFunction() -> AnySection<Game> {
     run()
   }
 
@@ -124,7 +126,7 @@ public struct AnyGetSection<Game: Setting>: Hashable & Encodable {
 extension AnyGetSection: Decodable where Game: Story {
   public init(from decoder: Decoder) throws {
     let sequence = Game.scenes.lazy
-      .flatMap { $0.branches }
+      .flatMap(\.branches)
       .map { rawBranch in Result { try rawBranch.decodeSection(decoder) } }
 
     var errors: [Swift.Error] = []

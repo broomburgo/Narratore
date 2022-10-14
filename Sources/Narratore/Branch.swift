@@ -64,13 +64,13 @@ extension BranchChange: Decodable where Game: Story {}
 
 extension BranchChange {
   public static func replaceWith<B: Branch>(
-    _ branch: B.Type,
+    _: B.Type,
     at anchor: B.Anchor? = nil,
     scene: B.Parent
   ) -> Self where B.Parent.Game == Game {
     .init(action: .replaceWith, section: scene.steps(for: B.self, at: anchor))
   }
-  
+
   public static func replaceWith<S: Scene>(
     _ scene: S
   ) -> Self where S.Game == Game {
@@ -78,13 +78,13 @@ extension BranchChange {
   }
 
   public static func runThrough<B: Branch>(
-    _ branch: B.Type,
+    _: B.Type,
     at anchor: B.Anchor? = nil,
     scene: B.Parent
   ) -> Self where B.Parent.Game == Game {
     .init(action: .runThrough, section: scene.steps(for: B.self, at: anchor))
   }
-  
+
   public static func runThrough<S: Scene>(
     _ scene: S
   ) -> Self where S.Game == Game {
@@ -92,13 +92,13 @@ extension BranchChange {
   }
 
   public static func transitionTo<B: Branch>(
-    _ branch: B.Type,
+    _: B.Type,
     at anchor: B.Anchor? = nil,
     scene: B.Parent
   ) -> Self where B.Parent.Game == Game {
     .init(action: .transitionTo, section: scene.steps(for: B.self, at: anchor))
   }
-  
+
   public static func transitionTo<S: Scene>(
     _ scene: S
   ) -> Self where S.Game == Game {

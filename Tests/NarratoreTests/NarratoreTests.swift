@@ -13,17 +13,17 @@ class NarratoreTest: XCTestCase {
   func testReadRunnerScript() async {
     TestScene1.Main.updateSteps { _ in
       "a"
-      
+
       check { _ in
         .init(narration: .init(messages: [], tags: [], update: nil))
       }
-      
+
       "b".with(id: "1")
-      
+
       check { _ in
         .init(narration: .init(messages: [], tags: [], update: nil))
       }
-      
+
       "c".with(id: "2")
       "d"
     }
@@ -32,7 +32,7 @@ class NarratoreTest: XCTestCase {
       handler: .mock(),
       status: .init(
         world: .init(),
-        scene: TestScene1.init()
+        scene: TestScene1()
       )
     )
     await runner.start()
@@ -42,35 +42,35 @@ class NarratoreTest: XCTestCase {
     XCTAssertEqual(story.narrated["2", default: 0], 1)
     XCTAssertEqual(story.words, ["a", "b", "c", "d"])
   }
-  
+
   func testReadRunnerScriptWithTell() async {
     TestScene1.Main.updateSteps { _ in
       "a"
-      
+
       check { context in
         tell {
           "b".with(id: "1")
-          
+
           if context.world.counter == 1 {
             "bb".with(id: "1")
           }
-          
+
           "c"
         } update: {
           $0.counter += 1
         }
       }
-      
+
       "d"
-      
+
       check { context in
         tell(tags: ["a"]) {
           "e".with(id: "2")
-          
+
           if context.world.counter == 1 {
             "ee".with(id: "2")
           }
-          
+
           "f"
         }
       }
@@ -82,7 +82,7 @@ class NarratoreTest: XCTestCase {
       handler: .mock(),
       status: .init(
         world: .init(),
-        scene: TestScene1.init()
+        scene: TestScene1()
       )
     )
     await runner.start()
@@ -107,7 +107,7 @@ class NarratoreTest: XCTestCase {
       handler: .mock(),
       status: .init(
         world: .init(),
-        scene: TestScene1.init()
+        scene: TestScene1()
       )
     )
     await runner.start()
@@ -146,7 +146,7 @@ class NarratoreTest: XCTestCase {
       },
       status: .init(
         world: .init(),
-        scene: TestScene1.init()
+        scene: TestScene1()
       )
     ).start()
 
@@ -162,7 +162,7 @@ class NarratoreTest: XCTestCase {
     TestScene1.Main.updateSteps { _ in
       "a"
       "b"
-      then(.transitionTo(TestScene2.init()))
+      then(.transitionTo(TestScene2()))
     }
 
     TestScene2.Main.updateSteps { _ in
@@ -174,7 +174,7 @@ class NarratoreTest: XCTestCase {
       handler: .mock(),
       status: .init(
         world: .init(),
-        scene: TestScene1.init()
+        scene: TestScene1()
       )
     )
     await runner.start()
@@ -190,7 +190,7 @@ class NarratoreTest: XCTestCase {
         "* 1".onSelect {
           "b"
             .with(id: "b is selected")
-            .then(.transitionTo(TestScene2.init()))
+            .then(.transitionTo(TestScene2()))
         }
 
         "* 2".onSelect {
@@ -214,7 +214,7 @@ class NarratoreTest: XCTestCase {
       handler: .mock(),
       status: .init(
         world: .init(),
-        scene: TestScene1.init()
+        scene: TestScene1()
       )
     )
     await runner.start()
@@ -237,7 +237,7 @@ class NarratoreTest: XCTestCase {
         if $0.world.counter == 10 {
           "b"
             .with { $0.counter -= 1 }
-            .then(.transitionTo(TestScene2.init()))
+            .then(.transitionTo(TestScene2()))
         }
       }
     }
@@ -258,7 +258,7 @@ class NarratoreTest: XCTestCase {
       handler: .mock(),
       status: .init(
         world: .init(),
-        scene: TestScene1.init()
+        scene: TestScene1()
       )
     )
     await runner.start()
@@ -294,7 +294,7 @@ class NarratoreTest: XCTestCase {
       }),
       status: .init(
         world: .init(),
-        scene: TestScene1.init()
+        scene: TestScene1()
       )
     )
     await runner!.start()
@@ -356,7 +356,7 @@ class NarratoreTest: XCTestCase {
       handler: .mock(),
       status: .init(
         world: .init(),
-        scene: TestScene1.init()
+        scene: TestScene1()
       )
     )
     await runner.start()
@@ -431,7 +431,7 @@ class NarratoreTest: XCTestCase {
       handler: .mock(),
       status: .init(
         world: .init(),
-        scene: TestScene2.init()
+        scene: TestScene2()
       )
     )
     await runner.start()
@@ -456,7 +456,7 @@ class NarratoreTest: XCTestCase {
       "c",
       "g",
       "h",
-      "i"
+      "i",
     ])
   }
 
@@ -505,7 +505,7 @@ class NarratoreTest: XCTestCase {
       handler: .mock(),
       status: .init(
         world: .init(),
-        scene: TestScene2.init()
+        scene: TestScene2()
       )
     )
     await runner.start()
@@ -563,7 +563,7 @@ class NarratoreTest: XCTestCase {
       handler: .mock(),
       status: .init(
         world: .init(),
-        scene: TestScene1.init()
+        scene: TestScene1()
       )
     )
     await runner.start()
@@ -617,7 +617,7 @@ class NarratoreTest: XCTestCase {
       handler: .mock(),
       status: .init(
         world: .init(),
-        scene: TestScene1.init()
+        scene: TestScene1()
       )
     )
     await runner.start()
@@ -658,7 +658,7 @@ class NarratoreTest: XCTestCase {
       }),
       status: .init(
         world: .init(),
-        scene: TestScene1.init()
+        scene: TestScene1()
       )
     )
     await runner.start()
@@ -692,7 +692,7 @@ class NarratoreTest: XCTestCase {
       }),
       status: .init(
         world: .init(),
-        scene: TestScene1.init()
+        scene: TestScene1()
       )
     )
     await runner.start()
@@ -718,7 +718,7 @@ class NarratoreTest: XCTestCase {
       }),
       status: .init(
         world: .init(),
-        scene: TestScene1.init()
+        scene: TestScene1()
       )
     )
     await runner.start()
@@ -734,7 +734,7 @@ class NarratoreTest: XCTestCase {
         if $0.script.narrated["did see b", default: 0] == 0 {
           "b"
             .with(id: "did see b")
-            .then(.replaceWith(TestScene2.init()))
+            .then(.replaceWith(TestScene2()))
         }
       }
       "c"
@@ -743,17 +743,17 @@ class NarratoreTest: XCTestCase {
     TestScene2.Main.updateSteps { _ in
       "d"
       "e"
-      then(.runThrough(TestScene1.init()))
+      then(.runThrough(TestScene1()))
       "f"
       "g"
-      then(.transitionTo(TestScene1.init()))
+      then(.transitionTo(TestScene1()))
     }
 
     let runner = Runner<TestGame>.init(
       handler: .mock(),
       status: .init(
         world: .init(),
-        scene: TestScene1.init()
+        scene: TestScene1()
       )
     )
     await runner.start()
@@ -782,11 +782,11 @@ class NarratoreTest: XCTestCase {
       "e"
       choose(tags: ["observe-choice"]) { _ in
         "* 1".onSelect(tags: ["not-observe-1"]) {
-          "* 1".then(.transitionTo(TestScene2.init()))
+          "* 1".then(.transitionTo(TestScene2()))
         }
 
         "* 2".onSelect(tags: ["observe-1"]) {
-          "* 2".then(.transitionTo(TestScene2.init()))
+          "* 2".then(.transitionTo(TestScene2()))
         }
       }
     }
@@ -795,7 +795,7 @@ class NarratoreTest: XCTestCase {
       handler: .mock(),
       status: .init(
         world: .init(),
-        scene: TestScene1.init()
+        scene: TestScene1()
       )
     )
     await runner.start()
@@ -812,7 +812,7 @@ class NarratoreTest: XCTestCase {
       "a"
       "b"
       "c"
-      then(.runThrough(TestScene2.init()))
+      then(.runThrough(TestScene2()))
       "d"
       "e"
     }
@@ -841,7 +841,7 @@ class NarratoreTest: XCTestCase {
       ),
       status: .init(
         world: .init(),
-        scene: TestScene1.init()
+        scene: TestScene1()
       )
     )
     await runner1.start()

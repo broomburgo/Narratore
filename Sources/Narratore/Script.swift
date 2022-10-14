@@ -4,39 +4,39 @@
 public struct Script<Game: Setting>: Codable {
   /// The count of the narrated messages with an `id` that wasn't `nil`.
   public private(set) var narrated: [Game.Message.ID: Int] = [:]
-  
+
   /// The count of observed `Tag`s, that is, tags that had the `shouldObserve` property equal to `true`.
   public private(set) var observed: [Game.Tag: Int] = [:]
-  
+
   /// The list of text messages that constitute the story up to a certain point.
   public private(set) var words: [String] = []
-  
+
   public init() {}
-  
+
   public func didNarrate(_ id: Game.Message.ID) -> Bool {
     narrated[id, default: 0] > 0
   }
-  
+
   /// Add a `Narration` step to the story.
   public mutating func append(narration: Narration<Game>) {
     for tag in narration.tags.filter(\.shouldObserve) {
       observed[tag, default: 0] += 1
     }
-    
+
     for message in narration.messages {
       if let id = message.id {
         narrated[id, default: 0] += 1
       }
-      
+
       words.append(message.text)
     }
   }
-  
+
   /// Add a `Choice` step to the story.
   public mutating func append(choice: Choice<Game>) {
     for tag in (choice.tags + choice.options.flatMap(\.tags)).filter(\.shouldObserve) {
       observed[tag, default: 0] += 1
-    }    
+    }
   }
 }
 
@@ -68,7 +68,7 @@ public struct Choice<Game: Setting> {
   public var tags: [Game.Tag]
   public var config: Config = .init()
 
-  public init(options: [Option<Game>], tags: [Game.Tag], config: Config = .init()) {
+  public init(options: [Option<Game>], tags: [Game.Tag], config _: Config = .init()) {
     self.options = options
     self.tags = tags
   }

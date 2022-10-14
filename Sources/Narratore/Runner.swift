@@ -9,21 +9,19 @@
 /// To start the game, simply call `start()`. At any moment the latest `Info` can be read via the `info` property.
 public actor Runner<Game: Setting> {
   public var info: Info<Game> {
-    get {
-      status.info
-    }
+    status.info
   }
-    
+
   public init<H>(handler: H, status: Status<Game>) where H: Handler, H.Game == Game {
-    self.handling = handler.handling
+    handling = handler.handling
     self.status = status
   }
-  
+
   public func start() async {
     handling.handle(event: .gameStarted(status))
     await runNext()
   }
-  
+
   private let handling: Handling<Game>
 
   private var status: Status<Game> {
@@ -31,7 +29,7 @@ public actor Runner<Game: Setting> {
       handling.handle(event: .statusUpdated(status))
     }
   }
-  
+
   private var getStepsCache: [AnyGetSection<Game>: [GetStep<Game>]] = [:]
 
   private func runNext() async {
@@ -56,7 +54,7 @@ public actor Runner<Game: Setting> {
       getSteps = branchStatus.getSection().steps
       getStepsCache[branchStatus.getSection] = getSteps
     }
-    
+
     let getStep = getSteps[branchStatus.currentStepIndex]
     let step = getStep(context: .init(
       generate: .init(),
@@ -70,7 +68,7 @@ public actor Runner<Game: Setting> {
     case .advance(nil):
       branchStatus.currentStepIndex += 1
       if !getSteps.indices.contains(branchStatus.currentStepIndex) {
-        self.status.branchStack.removeLast()
+        status.branchStack.removeLast()
       }
 
     case .advance(let branchChange?):
@@ -114,7 +112,7 @@ public actor Runner<Game: Setting> {
 public struct Status<Game: Setting>: Encodable {
   public internal(set) var info: Info<Game>
   public internal(set) var branchStack: [BranchStatus<Game>]
-  
+
   /// Create a initial `Status` for a certain `World` instance and `Scene`.
   public init<S>(world: Game.World, scene: S) where S: Scene, S.Game == Game {
     info = .init(
@@ -156,8 +154,8 @@ public struct Context<Game: Setting> {
 /// A convenience `struct` that wraps to functionality of `Generate`.
 public struct Generate<Game: Setting> {
   public let randomRatio: () -> Double
-  
+
   init() {
-    self.randomRatio = { Game.Generate.randomRatio() }
+    randomRatio = { Game.Generate.randomRatio() }
   }
 }

@@ -1,5 +1,5 @@
 /// A concrete `Game` of `Narratore` must implement the `Story` protocol, in order to provide `scenes` when restoring an encoded game.
-public protocol Story: Setting {  
+public protocol Story: Setting {
   static var scenes: [RawScene<Self>] { get }
 }
 

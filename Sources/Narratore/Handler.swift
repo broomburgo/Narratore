@@ -22,12 +22,12 @@ public enum Player<Game: Setting> {
     public let messages: [Game.Message]
     public let tags: [Game.Tag]
   }
-  
+
   public struct Choice {
     public let options: [Option]
     public let tags: [Game.Tag]
   }
-  
+
   public struct Option {
     let id: String
     public let message: Game.Message
@@ -50,7 +50,7 @@ public enum Player<Game: Setting> {
 public struct Next<Game: Setting, A> {
   public var action: Action
   public var update: Update<Game>?
-  
+
   public init(
     action: Action,
     update: Update<Game>?
@@ -107,7 +107,7 @@ extension Next where A == Void {
       update: update
     )
   }
-  
+
   public static var advance: Self {
     .init(
       action: .advance(()),
@@ -132,22 +132,22 @@ public struct Handling<Game: Setting> {
   var _handleEvent: (Player<Game>.Event) -> Void
 
   public init(
-    acknowledgeNarration: @escaping (Player<Game>.Narration) async -> Next<Game,Void>,
+    acknowledgeNarration: @escaping (Player<Game>.Narration) async -> Next<Game, Void>,
     makeChoice: @escaping (Player<Game>.Choice) async -> Next<Game, Player<Game>.Option>,
     handleEvent: @escaping (Player<Game>.Event) -> Void
   ) {
-    self._acknowledgeNarration = acknowledgeNarration
-    self._makeChoice = makeChoice
-    self._handleEvent = handleEvent
+    _acknowledgeNarration = acknowledgeNarration
+    _makeChoice = makeChoice
+    _handleEvent = handleEvent
   }
 }
 
 extension Handler {
   var handling: Handling<Game> {
     .init(
-      acknowledgeNarration: self.acknowledge(narration:),
-      makeChoice: self.make(choice:),
-      handleEvent: self.handle(event:)
+      acknowledgeNarration: acknowledge(narration:),
+      makeChoice: make(choice:),
+      handleEvent: handle(event:)
     )
   }
 }
@@ -160,7 +160,7 @@ extension Handling: Handler {
   public func make(choice: Player<Game>.Choice) async -> Next<Game, Player<Game>.Option> {
     await _makeChoice(choice)
   }
-  
+
   public func handle(event: Player<Game>.Event) {
     _handleEvent(event)
   }

@@ -117,7 +117,7 @@ public enum BranchBuilder<B: Branch> {
       ),
     ]
   }
-  
+
   public static func buildExpression(_ expression: BranchStep<B>) -> Component {
     [expression]
   }

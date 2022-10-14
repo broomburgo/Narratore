@@ -10,14 +10,17 @@ public struct Step<Game: Setting> {
   private var _apply: (inout Info<Game>, Handling<Game>) async -> Outcome<Game>
 
   public init(apply: @escaping (inout Info<Game>, Handling<Game>) async -> Outcome<Game>) {
-    self._apply = apply
+    _apply = apply
   }
 
   public func apply(info: inout Info<Game>, handling: Handling<Game>) async -> Outcome<Game> {
     await _apply(&info, handling)
   }
 
-  func apply(info: Info<Game>, handling: Handling<Game>) async -> (newInfo: Info<Game>, next: Outcome<Game>) {
+  func apply(
+    info: Info<Game>,
+    handling: Handling<Game>
+  ) async -> (newInfo: Info<Game>, next: Outcome<Game>) {
     var newInfo = info
     let outcome = await apply(info: &newInfo, handling: handling)
     return (newInfo, outcome)
@@ -46,28 +49,32 @@ extension Step {
       }
 
       let playerOptions = choice.options.map {
-        Player<Game>.Option.init(
+        Player<Game>.Option(
           id: Game.Generate.uniqueString(),
           message: $0.message,
           tags: $0.tags
         )
       }
-      
+
       let next = await handling.make(choice: .init(
         options: playerOptions,
         tags: choice.tags
       ))
-      
+
       switch next.action {
       case .advance(let playerOption):
         guard
           let optionIndex = playerOptions.firstIndex(where: { $0.id == playerOption.id }),
           choice.options.indices.contains(optionIndex)
         else {
-          handling.handle(event: .errorProduced(.invalidOptionId(expected: playerOptions.map(\.id), received: playerOption.id)))
+          handling
+            .handle(event: .errorProduced(.invalidOptionId(
+              expected: playerOptions.map(\.id),
+              received: playerOption.id
+            )))
           return .replay
         }
-        
+
         info.script.append(choice: choice)
         next.update?(&info.world)
 
@@ -95,9 +102,9 @@ extension Step {
       } else {
         next = .advance
       }
-      
+
       defer { next.update?(&info.world) }
-      
+
       switch next.action {
       case .advance:
         info.script.append(narration: narration)
@@ -127,7 +134,7 @@ extension Step {
       }
 
       defer { next.update?(&info.world) }
-      
+
       switch next.action {
       case .advance:
         info.script.append(narration: jump.narration)

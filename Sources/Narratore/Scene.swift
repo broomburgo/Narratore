@@ -20,7 +20,9 @@ extension Scene {
 }
 
 extension Scene {
-  func steps<B>(for _: B.Type, at anchor: B.Anchor? = nil) -> AnyGetSection<Game> where B: Branch, B.Parent == Self {
+  func steps<B>(for _: B.Type, at anchor: B.Anchor? = nil) -> AnyGetSection<Game> where B: Branch,
+    B.Parent == Self
+  {
     .init(GetSection<B>.init(scene: self), at: anchor)
   }
 }

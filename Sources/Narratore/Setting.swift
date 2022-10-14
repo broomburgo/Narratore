@@ -25,7 +25,7 @@ public protocol Generating {
 /// Additionally, a message must be constructible with a text `String`, a feature used in the DSL functions, and must have a simple, human-readable `description`, that defaults to the `text` property.
 public protocol Messaging: Codable & CustomStringConvertible {
   associatedtype ID: Hashable & Codable
-  
+
   var id: ID? { get }
   var text: String { get }
 
