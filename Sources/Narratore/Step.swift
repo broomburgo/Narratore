@@ -33,12 +33,18 @@ extension Step {
   }
 
   public init(choice: Choice<Game>) {
-    guard !choice.options.isEmpty else {
-      self = .skip
-      return
-    }
-    
     self.init { info, handling in
+      guard let firstOption = choice.options.first else {
+        if choice.config.failIfNoOptions {
+          handling.handle(event: .errorProduced(.noOptions(choice: choice)))
+        }
+        return .advance(nil)
+      }
+
+      guard choice.options.count > 1 || choice.config.showIfSingleOption else {
+        return await firstOption.step.apply(info: &info, handling: handling)
+      }
+
       let playerOptions = choice.options.map {
         Player<Game>.Option.init(
           id: Game.Generate.uniqueString(),

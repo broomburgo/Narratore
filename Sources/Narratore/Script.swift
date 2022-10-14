@@ -66,10 +66,21 @@ public struct Narration<Game: Setting> {
 public struct Choice<Game: Setting> {
   public var options: [Option<Game>]
   public var tags: [Game.Tag]
+  public var config: Config = .init()
 
-  public init(options: [Option<Game>], tags: [Game.Tag]) {
+  public init(options: [Option<Game>], tags: [Game.Tag], config: Config = .init()) {
     self.options = options
     self.tags = tags
+  }
+
+  public struct Config {
+    public var failIfNoOptions: Bool = false
+    public var showIfSingleOption: Bool = false
+
+    public init(failIfNoOptions: Bool = false, showIfSingleOption: Bool = false) {
+      self.failIfNoOptions = failIfNoOptions
+      self.showIfSingleOption = showIfSingleOption
+    }
   }
 }
 
