@@ -118,11 +118,10 @@ extension Next where A == Void {
 
 /// Some possible error statuses.
 public enum Failure<Game: Setting>: Error {
-  case invalidBranchId(expected: String, received: String)
+  case cannotDecodeSection(errors: [Error])
   case invalidOptionId(expected: [String], received: String)
-  case noBranch(option: Option<Game>)
+  case invalidSceneIdentifier(expected: String, received: String)
   case noOptions(choice: Choice<Game>)
-  case notFound(errors: [Error])
 }
 
 /// The "protocol witness" version of `Handler`, used internally to type-erase the `Handler` passed to `Runner`.

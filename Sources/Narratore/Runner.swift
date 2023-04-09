@@ -30,32 +30,32 @@ public actor Runner<Game: Setting> {
     }
   }
 
-  private var getStepsCache: [AnyGetSection<Game>: [GetStep<Game>]] = [:]
+  private var getStepsCache: [Section<Game>: [GetStep<Game>]] = [:]
 
   private func runNext() async {
-    guard let positionIndex = status.branchStack.indices.last else {
+    guard let positionIndex = status.sceneStack.indices.last else {
       handling.handle(event: .gameEnded)
       return
     }
 
-    var branchStatus: BranchStatus<Game> {
+    var sceneStatus: SceneStatus<Game> {
       get {
-        status.branchStack[positionIndex]
+        status.sceneStack[positionIndex]
       }
       set {
-        status.branchStack[positionIndex] = newValue
+        status.sceneStack[positionIndex] = newValue
       }
     }
 
     let getSteps: [GetStep<Game>]
-    if let fromCache = getStepsCache[branchStatus.getSection] {
+    if let fromCache = getStepsCache[sceneStatus.section] {
       getSteps = fromCache
     } else {
-      getSteps = branchStatus.getSection().steps
-      getStepsCache[branchStatus.getSection] = getSteps
+      getSteps = sceneStatus.section.steps
+      getStepsCache[sceneStatus.section] = getSteps
     }
 
-    let getStep = getSteps[branchStatus.currentStepIndex]
+    let getStep = getSteps[sceneStatus.currentStepIndex]
     let step = getStep(context: .init(
       generate: .init(),
       script: status.info.script,
@@ -66,35 +66,32 @@ public actor Runner<Game: Setting> {
 
     switch next {
     case .advance(nil):
-      branchStatus.currentStepIndex += 1
-      if !getSteps.indices.contains(branchStatus.currentStepIndex) {
-        status.branchStack.removeLast()
+      sceneStatus.currentStepIndex += 1
+      if !getSteps.indices.contains(sceneStatus.currentStepIndex) {
+        status.sceneStack.removeLast()
       }
 
-    case .advance(let branchChange?):
-      let getSection = branchChange.section
-      let section = getSection()
+    case .advance(let sceneChange?):
+      getStepsCache[sceneChange.section] = sceneChange.section.steps
 
-      getStepsCache[getSection] = section.steps
-
-      switch branchChange.action {
+      switch sceneChange.action {
       case .replaceWith:
-        if !status.branchStack.isEmpty {
-          status.branchStack.removeLast()
+        if !status.sceneStack.isEmpty {
+          status.sceneStack.removeLast()
         }
 
       case .runThrough:
-        if let lastBranchIndex = status.branchStack.indices.last {
-          status.branchStack[lastBranchIndex].currentStepIndex += 1
+        if let lastSceneIndex = status.sceneStack.indices.last {
+          status.sceneStack[lastSceneIndex].currentStepIndex += 1
         }
 
       case .transitionTo:
-        status.branchStack = []
+        status.sceneStack = []
       }
 
-      status.branchStack.append(.init(
-        currentStepIndex: section.startingIndex,
-        getSection: getSection
+      status.sceneStack.append(.init(
+        currentStepIndex: sceneChange.section.startingIndex,
+        section: sceneChange.section
       ))
 
     case .replay:
@@ -111,18 +108,18 @@ public actor Runner<Game: Setting> {
 /// Contains the full encodable status of the `Game`, that can be used to restore it when needed.
 public struct Status<Game: Setting>: Encodable {
   public internal(set) var info: Info<Game>
-  public internal(set) var branchStack: [BranchStatus<Game>]
+  public internal(set) var sceneStack: [SceneStatus<Game>]
 
   /// Create a initial `Status` for a certain `World` instance and `Scene`.
-  public init<S>(world: Game.World, scene: S) where S: Scene, S.Game == Game {
+  public init<Scene>(world: Game.World, scene: Scene) where Scene: SceneType, Scene.Game == Game {
     info = .init(
       script: .init(),
       world: world
     )
-    branchStack = [
+    sceneStack = [
       .init(
         currentStepIndex: 0,
-        getSection: .init(GetSection<S.Main>.init(scene: scene))
+        section: .init(scene: scene)
       ),
     ]
   }
@@ -136,13 +133,13 @@ public struct Info<Game: Setting>: Codable {
   public internal(set) var world: Game.World
 }
 
-/// The state of a specific branch in the stack.
-public struct BranchStatus<Game: Setting>: Encodable {
+/// The state of a specific scene in the stack.
+public struct SceneStatus<Game: Setting>: Encodable {
   public internal(set) var currentStepIndex: Int
-  public internal(set) var getSection: AnyGetSection<Game>
+  public internal(set) var section: Section<Game>
 }
 
-extension BranchStatus: Decodable where Game: Story {}
+extension SceneStatus: Decodable where Game: Story {}
 
 /// Passed to the `GetStep` function, to create a `Step`.
 public struct Context<Game: Setting> {

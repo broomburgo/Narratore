@@ -98,8 +98,8 @@ public enum OptionsBuilder<Game: Setting> {
 }
 
 @resultBuilder
-public enum BranchBuilder<B: Branch> {
-  public typealias Component = [BranchStep<B>]
+public enum SceneBuilder<Scene: SceneType> {
+  public typealias Component = [SceneStep<Scene>]
 
   public static func buildExpression(_ expression: String) -> Component {
     [
@@ -118,11 +118,11 @@ public enum BranchBuilder<B: Branch> {
     ]
   }
 
-  public static func buildExpression(_ expression: BranchStep<B>) -> Component {
+  public static func buildExpression(_ expression: SceneStep<Scene>) -> Component {
     [expression]
   }
 
-  public static func buildExpression(_ expression: [BranchStep<B>]) -> Component {
+  public static func buildExpression(_ expression: [SceneStep<Scene>]) -> Component {
     expression
   }
 

@@ -27,8 +27,8 @@ public struct Step<Game: Setting> {
   }
 }
 
-/// The possible outcome of a `Step`, represented via the `Action` type of `Next`, where the value associated to the `.advance` case is an optional `BranchChange`.
-public typealias Outcome<Game: Setting> = Next<Game, BranchChange<Game>?>.Action
+/// The possible outcome of a `Step`, represented via the `Action` type of `Next`, where the value associated to the `.advance` case is an optional `SceneChange`.
+public typealias Outcome<Game: Setting> = Next<Game, SceneChange<Game>?>.Action
 
 extension Step {
   public static var skip: Self {
@@ -140,7 +140,7 @@ extension Step {
         info.script.append(narration: jump.narration)
         jump.narration.update?(&info.world)
 
-        return .advance(jump.branchChange)
+        return .advance(jump.sceneChange)
 
       case .replay:
         return .replay

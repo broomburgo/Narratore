@@ -235,7 +235,7 @@ As mentioned, `Runner` requires an `Handler` and a `Status` to be initialized: t
 
 ```swift
 public struct Status<Game: Setting> {
-  public init<S>(world: Game.World, scene: S) where S: Scene, S.Game == Game {
+  public init<Scene>(world: Game.World, scene: S) where S: Scene, S.Game == Game {
     ...
   }
   

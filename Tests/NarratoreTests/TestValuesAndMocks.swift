@@ -36,107 +36,91 @@ enum TestGame: Story {
 
 typealias TestPlayer = Player<TestGame>
 
-struct TestScene1: Scene {
-  var title: String = "title"
+struct TestScene1: SceneType {
+  typealias Game = TestGame
+  typealias Anchor = String
 
-  static let branches: [RawBranch<TestGame>] = [Main.raw, Other.raw]
+  var title: String
 
-  enum Main: Branch {
-    private static var _getStepsFor: (TestScene1) -> [BranchStep<Self>] = { _ in [.init(
-      anchor: nil,
-      getStep: .init { _ in
-        .init(narration: .init(messages: [.init(id: nil, text: "Test")], tags: [], update: nil))
-      }
-    )] }
+  init(title: String = "title") {
+    self.title = title
+  }
 
-    static func getSteps(for scene: TestScene1) -> [BranchStep<Self>] {
-      _getStepsFor(scene)
+  private var _getSteps: () -> [SceneStep<Self>] = { [.init(
+    anchor: nil,
+    getStep: .init { _ in
+      .init(narration: .init(messages: [.init(id: nil, text: "Test")], tags: [], update: nil))
     }
+  )] }
 
-    static func updateSteps(
-      @BranchBuilder<Self> _ update: @escaping (TestScene1)
-        -> [BranchStep<Self>]
-    ) {
-      _getStepsFor = {
-        update($0)
-      }
+  var steps: [SceneStep<Self>] {
+    _getSteps()
+  }
+
+  mutating func updateSteps(@SceneBuilder<Self> _ update: @escaping () -> [SceneStep<Self>]) {
+    _getSteps = {
+      update()
     }
   }
 
-  enum Other: Branch {
-    typealias Anchor = String
+  func encode(to encoder: Encoder) throws {
+    try title.encode(to: encoder)
+  }
 
-    private static var _getStepsFor: (TestScene1) -> [BranchStep<Self>] = { _ in [.init(
-      anchor: nil,
-      getStep: .init { _ in
-        .init(narration: .init(messages: [.init(id: nil, text: "Test")], tags: [], update: nil))
-      }
-    )] }
+  init(from decoder: Decoder) throws {
+    try self.init(title: .init(from: decoder))
+  }
 
-    static func getSteps(for scene: TestScene1) -> [BranchStep<Self>] {
-      _getStepsFor(scene)
-    }
+  func hash(into hasher: inout Hasher) {
+    title.hash(into: &hasher)
+  }
 
-    static func updateSteps(
-      @BranchBuilder<Self> _ update: @escaping (TestScene1)
-        -> [BranchStep<Self>]
-    ) {
-      _getStepsFor = {
-        update($0)
-      }
-    }
+  static func == (lhs: Self, rhs: Self) -> Bool {
+    lhs.title == rhs.title
   }
 }
 
-struct TestScene2: Scene {
-  var title: String = "title"
+struct TestScene2: SceneType {
+  typealias Game = TestGame
+  typealias Anchor = String
 
-  static let branches: [RawBranch<TestGame>] = [Main.raw, Other.raw]
+  var title: String
 
-  enum Main: Branch {
-    typealias Anchor = String
+  init(title: String = "title") {
+    self.title = title
+  }
 
-    private static var _getStepsFor: (TestScene2) -> [BranchStep<Self>] = { _ in [.init(
-      anchor: nil,
-      getStep: .init { _ in
-        .init(narration: .init(messages: [.init(id: nil, text: "Test")], tags: [], update: nil))
-      }
-    )] }
-
-    static func getSteps(for scene: TestScene2) -> [BranchStep<Self>] {
-      _getStepsFor(scene)
+  private var _getSteps: () -> [SceneStep<Self>] = { [.init(
+    anchor: nil,
+    getStep: .init { _ in
+      .init(narration: .init(messages: [.init(id: nil, text: "Test")], tags: [], update: nil))
     }
+  )] }
 
-    static func updateSteps(
-      @BranchBuilder<Self> _ update: @escaping (TestScene2)
-        -> [BranchStep<Self>]
-    ) {
-      _getStepsFor = {
-        update($0)
-      }
+  var steps: [SceneStep<Self>] {
+    _getSteps()
+  }
+
+  mutating func updateSteps(@SceneBuilder<Self> _ update: @escaping () -> [SceneStep<Self>]) {
+    _getSteps = {
+      update()
     }
   }
 
-  enum Other: Branch {
-    private static var _getStepsFor: (TestScene2) -> [BranchStep<Self>] = { _ in [.init(
-      anchor: nil,
-      getStep: .init { _ in
-        .init(narration: .init(messages: [.init(id: nil, text: "Test")], tags: [], update: nil))
-      }
-    )] }
+  func encode(to encoder: Encoder) throws {
+    try title.encode(to: encoder)
+  }
 
-    static func getSteps(for scene: TestScene2) -> [BranchStep<Self>] {
-      _getStepsFor(scene)
-    }
+  init(from decoder: Decoder) throws {
+    try self.init(title: .init(from: decoder))
+  }
 
-    static func updateSteps(
-      @BranchBuilder<Self> _ update: @escaping (TestScene2)
-        -> [BranchStep<Self>]
-    ) {
-      _getStepsFor = {
-        update($0)
-      }
-    }
+  func hash(into hasher: inout Hasher) {
+    title.hash(into: &hasher)
+  }
+
+  static func == (lhs: Self, rhs: Self) -> Bool {
+    lhs.title == rhs.title
   }
 }
 

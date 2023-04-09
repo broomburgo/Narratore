@@ -49,70 +49,61 @@ enum MyGame: Setting {
 
 // ------ Write a story ------ //
 
+extension SceneType {
+  typealias Game = MyGame
+}
+
 extension MyGame: Story {
   static let scenes: [RawScene<MyGame>] = [
     MyFirstScene.raw,
-    MySecondScene.raw,
+    MySecondScene.Main.raw,
+    MySecondScene.Other.raw,
   ]
 }
 
-struct MyFirstScene: Scene {
-  typealias Game = MyGame
-  
-  static let branches: [RawBranch<MyGame>] = [
-    Main.raw,
-  ]
-  
-  enum Main: Branch {
-    typealias Anchor = String
+struct MyFirstScene: SceneType {
+  typealias Anchor = String
 
-    @BranchBuilder<Self>
-    static func getSteps(for _: MyFirstScene) -> [BranchStep<Self>] {
-      "Welcome"
-      
-      "This is your new game, built with narratore".with(tags: [.init("Let's play some sound effect!")])
-      
-      check {
-        if $0.world.isEnjoyable {
-          "Enjoy!"
+  var steps: Steps {
+    "Welcome"
+    
+    "This is your new game, built with narratore".with(tags: [.init("Let's play some sound effect!")])
+    
+    check {
+      if $0.world.isEnjoyable {
+        "Enjoy!"
+      }
+    }
+    
+    "Now choose".with(anchor: "We could jump right here from anywhere")
+    
+    choose { _ in
+      "Go to second scene, main path".onSelect {
+        "Let's go to the second scene!"
+        .with(id: "We can keep track of this message")
+        .then {
+          .transitionTo(MySecondScene.Main(magicNumber: 42))  
         }
       }
-      
-      "Now choose".with(anchor: "We could jump right here from anywhere")
-      
-      choose { _ in
-        "Go to second scene, main path".onSelect {
-          "Let's go to the second scene!"
-            .with(id: "We can keep track of this message")
-            .then(.transitionTo(MySecondScene.init(magicNumber: 42)))
-        }
 
-        "Go to second scene, alternate path".onSelect {
-          "Going to the alternate path of the second scene"
-            .then(.transitionTo(MySecondScene.Other.self, scene: .init(magicNumber: 43)))
+      "Go to second scene, alternate path".onSelect {
+        "Going to the alternate path of the second scene".then {
+          .transitionTo(MySecondScene.Other())
         }
       }
     }
   }
 }
 
-struct MySecondScene: Scene {
-  typealias Game = MyGame
-  
-  var magicNumber: Int
-  
-  static let branches: [RawBranch<MyGame>] = [
-    Main.raw,
-    Other.raw,
-  ]
-  
-  enum Main: Branch {
-    @BranchBuilder<Self>
-    static func getSteps(for scene: MySecondScene) -> [BranchStep<Self>] {
+enum MySecondScene {      
+  struct Main: SceneType {
+    var magicNumber: Int
+
+    var steps: [SceneStep<Self>] {
       "Welcome to the second scene"
       
-      if scene.magicNumber == 42 {
-        "The magic number is \(scene.magicNumber)"
+      if magicNumber == 42 {
+        "The magic number is \(magicNumber)"
       } else {
         "The magic number doesn't look right..."
       }
@@ -121,9 +112,8 @@ struct MySecondScene: Scene {
     }
   }
   
-  enum Other: Branch {
-    @BranchBuilder<Self>
-    static func getSteps(for scene: MySecondScene) -> [BranchStep<Self>] {
+  struct Other: SceneType {
+    var steps: [SceneStep<Self>] {
       "I see you chose the alternate path"
       
       "Bad luck!"

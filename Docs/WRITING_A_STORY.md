@@ -6,77 +6,76 @@ The defining feature of `Narratore` is that a story is Swift Package. A key desi
 
 ## The basics
 
-A `Story` in `Narratore` is a protocol that derives from `Setting` (described in [Defining a game setting](DEFINING_A_GAME_SETTING.md)) and adds a `static var scenes: [RawScene<Self>] { get }` property. This is required for decoding reasons: when a story file is deserialized, `Narratore` looks for the scenes defined in the property in order to deserialize each scene. We'll see later what a `RawScene` is, but for now let's take a look a the basic building blocks of a `Story`, that is, `Scene`s, `Branch`es and `BranchStep`s.
+A `Story` in `Narratore` is a protocol that derives from `Setting` (described in [Defining a game setting](DEFINING_A_GAME_SETTING.md)) and adds a `static var scenes: [RawScene<Self>] { get }` property. This is required for decoding reasons: when a story file is deserialized, `Narratore` looks for the scenes defined in the property in order to deserialize each scene. We'll see later what a `RawScene` is, but for now let's take a look a the basic building blocks of a `Story`, that is, `Scene`s, `Scene`es and `SceneStep`s.
 
 ### `Scene`
 
-A `Scene` is a `protocol` that's associated to a `Game: Story` and declares a `static var branches: [RawBranch<Game>] { get }` property. A type conforming to `Scene` must be also `Codable` and `Hashable`. As we can see form the requirements, a `Scene` is essentially a list of `RawBranch`es, which is a convenient representation of a `Branch` (we'll see later what the `Raw_` part means). So, a `Scene` is a list of `Branch`es. Also a `Scene` must declare a `Main` branch, and must be `Codable`.
-
-Essentially, a `Scene` is an actual piece of the story, it might be associated to a location, an episode, or even a simple character, and it must be `Codable` and `Hashable` because it's associated to some state that will be serialized and deserialized, and will be uniquely identified. For example, `SimpleStory` declares the following scene:
+A `Scene` is a type conforming to the `protocol SceneType`. Essentially, a `Scene` is an actual piece of the story, it might be associated to a location, an episode, or even a simple character, and it must be `Codable` and `Hashable` because it's associated to some state that will be serialized and deserialized, and will be uniquely identified. For example, `SimpleStory` declares the following scene:
 
 ```swift
-public struct Bookshop: Scene {
-  public typealias Game = SimpleStory
-  
-  public var status: Status
-  public init(status: Status = .regular) {
-    self.status = status
-  }
-  
+public struct Car: SceneType {
+  public init() {}
+  ...
+}
+```
+
+Normally, `SceneType` would require a `typealias Game = ...` declaration, but within a single `Story` it simply possible to automatically add it to all `Scene`s:
+
+```swift
+public extension SceneType {
+  typealias Game = SimpleStory
+}
+```
+
+In some cases, it might be convenient to group multiple scenes into a single namespace, because they're all related, and the namespace could include some convenient declarations that are related to all scenes:
+
+```swift
+public enum Bookshop {
+  ...
   public enum Status: Codable {
     case regular
     case trashed
   }
   ...
-}
-```
+  public struct Main: SceneType {
+    public enum Anchor: Codable & Hashable {
+      case askQuestions
+    }
 
-This `Bookshop` scene has a `status` property that defines the state of the bookshop: `regular` when it's in its normal state, and `trashed` when it was messed up by someone. The scene is the same, but it has 2 possible states, which will work almost as separate scenes, as we will see, thanks to the fact that the scene is `Hashable` (it's uniquely identified based on its state), and `Codable` (deserialization will have a different effect when restoring it from storage).
-
-A `Scene` must declare a list of `Branch`es, that will usually be defined within the scene type itself, that will act as a namespace. Then, for deserialization reasons, these branches will be listed in a `branches` static property, in their `_Raw` form. For example, the `Bookshop` scene declares this property:
-
-```swift
-public struct Bookshop: Scene {
-  ...
-  public static let branches: [RawBranch<SimpleStory>] = [
-    Main.raw,
-    ShowPhoto.raw,
-    ShowPhotoAgain.raw,
-    AboutTheShop.raw,
-    TheFeelingShop.raw,
-  ]
+    public var status: Status = .regular
+    ...
+  }
   ...
 }
 ```
 
-Let's see now what a `Branch` is.
+This `Bookshop.Main` scene has a `status` property that defines the state of the bookshop: `regular` when it's in its normal state, and `trashed` when it was messed up by someone. The scene is the same, but it has 2 possible states, which will work almost as separate scenes, as we will see, thanks to the fact that the scene is `Hashable` (it's uniquely identified based on its state), and `Codable` (deserialization will have a different effect when restoring it from storage).
 
-### `Branch`
+The `Scene` is the fundamental building block of a `Narratore` story: it's its "Lego piece", so to speak. One could define a `Story` with a single `Scene` and a (very) long list of steps, but it's often convenient to split the story in `Scene`s that have their own separate state.
 
-As we saw, a `Scene` is basically just a list of `Branch`es, while holding some state that's related to the story we're writing. The `Branch` is the fundamental building block of a `Narratore` story: it's its "Lego piece", so to speak. One could define a `Story` with a single `Scene` and a long list of `Branch`es, but it's often convenient to split the story in `Scene`s that have their own separate state.
-
-A `Branch` is a __linear list of steps__, whose actual content depends on the current state of the `Scene` to which the `Branch` is associated. This can be easily seen by just looking at the definition of the `Branch` protocol:
+A `Scene` provides a __linear list of steps__, whose actual content depends on the current state of the `Scene`. This can be easily seen by just looking at the definition of the `Scene` protocol:
 
 ```swift
-public protocol Branch {
-  associatedtype Parent: Scene
-  associatedtype Anchor: Hashable = Never
+public protocol SceneType: Codable & Hashable {
+  associatedtype Game: Story
+  associatedtype Anchor: Codable & Hashable = NoAnchor
 
-  static func getSteps(for: Parent) -> [BranchStep<Self>]
+  @SceneBuilder<Self>
+  var steps: Steps { get }
 }
 ```
 
-A `Branch` has a `Parent: Scene`, and an `Anchor: Hashable` that defaults to `Never` (it's essentially "optional" then, because if it's not defined for a `Branch`, it will be assumed as non-existent). Also, `Branch` must define a `static func getSteps(for: Parent) -> [BranchStep<Self>]`, that returns a list of `BranchStep` and depends on the state of the `Parent` scene.
+A `Scene` is associated to a `Game: Story` and an `Anchor: Codable & Hashable` that defaults to `NoAnchor` (it's essentially "optional" then, because if it's not defined for a `Scene`, it will be assumed as non-existent). Also, `Scene` must define a `var steps: Steps { get }`, that returns a list of `SceneStep` and depends on the state of the scene (`Steps` is a `typealias`).
 
-A `Branch` has no state: it produces a list of steps via a __static function__. The state associated to a branch is the one defined by the parent scene, and has an effect when producing the list of steps. In theory, one could extend their `World` type with the `Scene` protocol, and have all branches in the game depend on the state of the `World` itself: while this could be a good idea for a very simple and short story, it's probably better to still split the story in several `Scene`s, that could then be referenced from the `World` if needed (being `Codable`, they can be put in `World` properties).
+In theory, one could extend their `World` type with the `SceneType` protocol, and have all scenes in the game depend on the state of the `World` itself: while this could be a good idea for a very simple and short story, it's probably better to still split the story in several `Scene`s, that could then be referenced from the `World` if needed (being `Codable`, they can be put in `World` properties).
 
-### `BranchStep`
+### `SceneStep`
 
-The key requirement for a `Branch` is to provide a static function that returns an `Array<BranchStep>`, and the types involved are pretty simple, so let's describe them in some detail:
+The key requirement for a `Scene` is to provide a computed property that returns an `Array<SceneStep>`, and the types involved are pretty simple, so let's describe them in some detail:
 
 ```swift
-public struct BranchStep<B: Branch> {
-  public init(anchor: B.Anchor? = nil,  getStep: GetStep<B.Parent.Game>) {
+public struct SceneStep<Scene: SceneType> {
+  public init(anchor: Scene.Anchor? = nil,  getStep: GetStep<Scene.Game>) {
     ...
   }
   ...
@@ -118,10 +117,10 @@ public struct Handling<Game: Setting> {
   ...
 }
 
-public typealias Outcome<Game: Setting> = Next<Game, BranchChange<Game>?>.Action
+public typealias Outcome<Game: Setting> = Next<Game, SceneChange<Game>?>.Action
 ```
 
-Basically, `BranchStep` requires a `GetStep`, and `GetStep` requires a function from `Context` to `Step`. The `Context` contains a generator defined from the `Setting.Generate` type, plus an (immutable) value of the current script of the story, and the state of the game world. `Step` is created from a function that takes:
+Basically, `SceneStep` requires a `GetStep`, and `GetStep` requires a function from `Context` to `Step`. The `Context` contains a generator defined from the `Setting.Generate` type, plus an (immutable) value of the current script of the story, and the state of the game world. `Step` is created from a function that takes:
 
 - a mutable value of the pair script+state (the `Info`);
 - a `Handling` value, that captures the logic of the `Handler` defined for the game;
@@ -156,13 +155,13 @@ Every single `Step` in a story can be customized based on the `Context` and, as 
 
 ## The DSL
 
-The `static func getSteps(for: Parent) -> [BranchStep<Self>]` function of a `Branch` can be augmented with the `@BranchBuilder` result builder, that allows for creating stories in a natural way. This result builder provides all the expected `build_` functions, like `buildOptional`, `buildEither` and `buildArray`, so the composition can be customized based on the `Parent` scene that's passed into the function.
+The `static func getSteps(for: Parent) -> [SceneStep<Self>]` function of a `Scene` can be augmented with the `@SceneBuilder` result builder, that allows for creating stories in a natural way. This result builder provides all the expected `build_` functions, like `buildOptional`, `buildEither` and `buildArray`, so the composition can be customized based on the `Parent` scene that's passed into the function.
 
-In addition to `@BranchBuilder` there are other result builders used in the DSL: I'll describe them in detail when needed. But everything starts with simple `String` literals.
+In addition to `@SceneBuilder` there are other result builders used in the DSL: I'll describe them in detail when needed. But everything starts with simple `String` literals.
 
 ### String literals
 
-`@BranchBuilder` declares, among other things, the following function:
+`@SceneBuilder` declares, among other things, the following function:
 
 ```swift
 public static func buildExpression(_ expression: String) -> Component {
@@ -170,12 +169,13 @@ public static func buildExpression(_ expression: String) -> Component {
 }
 ```
 
-Thus, a `BranchStep` can be simply build from a `String`. You can take a look at the beginning of the `Main` branch of `Car` scene:
+Thus, a `SceneStep` can be simply build from a `String`. You can take a look at the beginning of the `Main` scene of `Car` scene:
 
 ```swift
-public enum Main: Branch {
-  @BranchBuilder<Self>
-  public static func getSteps(for _: Car) -> [BranchStep<Self>] {
+public struct Car: SceneType {
+  public init() {}
+
+  public var steps: Steps {
     "You wake up from an unusual dream"
     "You were under the sea, walking on the ground as if there was no pull to the surface, nor any resistance from the water itself"
     "But you were definitely under the sea, fishes and everything, and the light of the sun reflected on the shimmering water surface, creating a dream-like movement"
@@ -185,14 +185,13 @@ public enum Main: Branch {
 }
 ```
  
- Simple string literals will be turned into `BranchStep` by the `BranchBuilder`. Now consider instead the beginning branch `Bookshop.Main` (`Bookshop` is the scene):
+ Simple string literals will be turned into `SceneStep` by the `SceneBuilder`. Now consider instead the beginning scene `Bookshop.Main`:
  
 ```swift
-public enum Main: Branch {
+public struct Main: SceneType {
   ...
-  @BranchBuilder<Self>
-  public static func getSteps(for scene: Bookshop) -> [BranchStep<Self>] {
-    switch scene.status {
+  public var steps: Steps {
+    switch status {
     case .regular:
       "The bookshop is barely lit, with some fake candles on the top shelves projecting a faint, shimmering light"
       "There's lots of bookshelves, some full of books, some almost empty"
@@ -202,7 +201,7 @@ public enum Main: Branch {
 }
 ```
 
-Thanks to the powers of the `@resultBuilder`, we can `switch` over the state of the scene, and produce a sequence of steps that depends on it. Given a uniquely identified state of the scene (remember that `Scene` is `Hashable`), the sequence of steps must always be the same: but remember that `BranchStep` wraps a `GetStep` instance, that in turn wraps a function from the game `Context` to a `Step`, so the specific `Step` that is produced from a `BranchStep` can actually change, but only a single `Step` will eventually be produced (the `Step` can actually be a `skip` one, as we'll see in a moment).
+Thanks to the powers of the `@resultBuilder`, we can `switch` over the state of the scene, and produce a sequence of steps that depends on it. Given a uniquely identified state of the scene (remember that `Scene` is `Hashable`), the sequence of steps must always be the same: but remember that `SceneStep` wraps a `GetStep` instance, that in turn wraps a function from the game `Context` to a `Step`, so the specific `Step` that is produced from a `SceneStep` can actually change, but only a single `Step` will eventually be produced (the `Step` can actually be a `skip` one, as we'll see in a moment).
 
 Finally, you can usually add some properties to the message or narration step represented by a `String`, thanks to the `.with` extension function defined on it, for example:
 
@@ -234,7 +233,7 @@ This uses a classic pattern: if a certain message was acknowledged (the message 
 
 The `tell` function requires a closure of type `(Context<Game>) -> [Game.Message]`, so it takes the game `Context` as input, and must return a list of `Game.Message`. But `tell` uses `@MessagesBuilder` so we can define the messages with the regular DSL, with all the regular `build_` functions.
 
-`Narratore` actually provides 3 separate `tell` function, depending on the context of the function where `tell` is called: this allows for a consistent experience, where it's almost always possible to use `tell` to group some messages. But the `Context` input to the closure is only present when `tell` is called at the first level of a `@BranchBuilder`: in any other case, a `Context` will already be present, so it's not repeated.
+`Narratore` actually provides 3 separate `tell` function, depending on the context of the function where `tell` is called: this allows for a consistent experience, where it's almost always possible to use `tell` to group some messages. But the `Context` input to the closure is only present when `tell` is called at the first level of a `@SceneBuilder`: in any other case, a `Context` will already be present, so it's not repeated.
 
 Within `tell` we can also use `skip()` to avoid sending messages in certain code paths, useful in case of a `switch`, for example in `Street.Main`:
 
@@ -270,33 +269,33 @@ tell {
 
 ### `then`
 
-The `then` function can be used to "jump" to another branch, or to a different place in the same branch, so that the narration continues from there. Jumping to other branches can be done for several reasons:
+The `then` function can be used to "jump" to another scene, or to a different place in the same scene, so that the narration continues from there. Jumping to other scenes can be done for several reasons:
 
 - simple narration grouping;
 - getting different outcomes from a choice;
 - branching out in certain conditions;
-- skipping ahead a section of a branch;
-- "looping back" in the same branch or in a different one, previously encountered.
+- skipping ahead a section of a scene;
+- "looping back" in the same scene or in a different one, previously encountered.
 
-The `then` function is the basic mechanism with which you can build a story with several branching paths, that can also merge together. It's a DSL function, but it's also declared as an extension to `String` so it's possible to have a narration step alongside the branch jump.
+The `then` function is the basic mechanism with which you can build a story with several sceneing paths, that can also merge together. It's a DSL function, but it's also declared as an extension to `String` so it's possible to have a narration step alongside the scene jump.
 
-Internally, `Narratore` will keep track of the current branch situation with a __stack of branches__: it's possible, in fact, to define branch jumps in a way that allows for "running through" a branch, and then going back to the previous one, at the very next step after the jump. Also, when jumping from a branch to another, it's possible to jump to a specific point in the branch, thanks to the branch `Anchor` type.
+Internally, `Narratore` will keep track of the current scene situation with a __stack of scenes__: it's possible, in fact, to define scene jumps in a way that allows for "running through" a scene, and then going back to the previous one, at the very next step after the jump. Also, when jumping from a scene to another, it's possible to jump to a specific point in the scene, thanks to the scene `Anchor` type.
 
-The `then` function requires a `BranchChange` value, and there are 3 types of branch changes: let's take a look at them.
+The `then` function requires a `SceneChange` value, and there are 3 types of scene changes: let's take a look at them.
 
 #### `runThrough`
 
-This branch change will append a new branch on top of the branch stack, so the narration will continue from the start of the new branch, or from a certain step described by a specific `Anchor` value. When the branch ends, it will be removed from the stack, and the narration will continue in the previous branch, from the very next step after the one where the jump occurred.
+This scene change will append a new scene on top of the scene stack, so the narration will continue from the start of the new scene, or from a certain step described by a specific `Anchor` value. When the scene ends, it will be removed from the stack, and the narration will continue in the previous scene, from the very next step after the one where the jump occurred.
 
-`BranchChange.runThrough` can be used to narrate optional sections of the story, or to narrate a section right before a jump that you want to define in the starting branch.
+`SceneChange.runThrough` can be used to narrate optional sections of the story, or to narrate a section right before a jump that you want to define in the starting scene.
 
 #### `replaceWith`
 
-Use this to replace the branch on top of the stack with another branch: when the new branch ends, it will be removed from the stack and the narration will continue from where it was branched from. You should consider `BranchChange.replaceWith` as the "default option", to be used in all cases where there is no specific need for particular types of branching.
+Use this to replace the scene on top of the stack with another scene: when the new scene ends, it will be removed from the stack and the narration will continue from where it was sceneed from. You should consider `SceneChange.replaceWith` as the "default option", to be used in all cases where there is no specific need for particular types of sceneing.
 
 #### `transitionTo`
 
-This branch change completely replaces the branch stack with a new one that only contains the branch to which the narration is jumping: this will discard the entire stack, so all previous `runThrough` branch changes will be essentially ignored.
+This scene change completely replaces the scene stack with a new one that only contains the scene to which the narration is jumping: this will discard the entire stack, so all previous `runThrough` scene changes will be essentially ignored.
 
 Use this for a hard narration changes, for example if the story should go to the ending scene, or for unrecoverable change in some condition in the story, for example if the main character is traveling to another place, or some major change in the world occurs, like a substantial shift in time that would make all previous narration jumps obsolete.
 
@@ -304,9 +303,9 @@ Use this for a hard narration changes, for example if the story should go to the
 
 Other than advancing narration, the other main player interaction is making choices. The DSL allows for an expressive way to describe choices (and their consequences), including the possibility to make the available options depend on the script or state of the world.
 
-It starts with the `choose` function, that takes a closure enhanced with the `@OptionsBuilder` result builder; also, if the `choose` function is called at the top level of a branch (thus, describing a `BranchStep`), the closure will take the `Context<Game>` as input.
+It starts with the `choose` function, that takes a closure enhanced with the `@OptionsBuilder` result builder; also, if the `choose` function is called at the top level of a scene (thus, describing a `SceneStep`), the closure will take the `Context<Game>` as input.
 
-Within the closure passed to `choose` we must describe the options that will be presented on the player, with the usual `@resultBuilder` features, that is, `if-else` branches, `switch`, arrays and so on. In the end, the `@resultBuilder` will need to build an array of options (of type `Option<Game>`), which could depend on several conditions: please note that if the conditions produce __zero options__, the `Runner` will send an error to its `Handler` and the game will stop.
+Within the closure passed to `choose` we must describe the options that will be presented on the player, with the usual `@resultBuilder` features, that is, `if-else` scenes, `switch`, arrays and so on. In the end, the `@resultBuilder` will need to build an array of options (of type `Option<Game>`), which could depend on several conditions: please note that if the conditions produce __zero options__, the `Runner` will send an error to its `Handler` and the game will stop.
 
 The DSL allows for building an option by simply writing a `String`, with the text that will be presented as option, and calling the `onSelect` function on it, for example:
 
@@ -324,7 +323,7 @@ choose { _ in
 }
 ``` 
 
-Within the `onSelect` closure, __a single step` must be defined__: this will keep the narration linear, because the `choose` function will define a single step, that includes both the choice and the result of the choice. But thanks to the `tell` and `then` functions, it's actually possible to produce multiple messages within the context of an option, and also to jump to another branch, or within the same branch but in a different place. Here's some examples:
+Within the `onSelect` closure, __a single step` must be defined__: this will keep the narration linear, because the `choose` function will define a single step, that includes both the choice and the result of the choice. But thanks to the `tell` and `then` functions, it's actually possible to produce multiple messages within the context of an option, and also to jump to another scene, or within the same scene but in a different place. Here's some examples:
 
 ```swift
 "You try to remember what the creature looked like.."
@@ -371,7 +370,9 @@ choose(.atTheDoor) {
         "You put the key in the locket and turn it counterclockwise"
         "The door unlocks"
         "You feel happy, and enter the apartment"
-      }.then(.transitionTo(TheApartment.self, scene: scene))
+      }.then {
+        .transitionTo(TheApartment())
+      }
     }
   }
 
@@ -381,7 +382,9 @@ choose(.atTheDoor) {
       tell {
         "You try break down the door with a push"
         "The door doesn't bulge"
-      }.then(.replaceWith(Self.self, at: .atTheDoor, scene: .init(breakTheDoorCounter: 1)))
+      }.then {
+        .replaceWith(self.updating { $0.breakTheDoorCounter = 1 }, at: .atTheDoor)
+      }
     }
 
   case 1:
@@ -389,7 +392,9 @@ choose(.atTheDoor) {
       tell {
         "You try again"
         "You're pushing as hard as you can, but your \"build\" is not exactly one of a door-breaker"
-      }.then(.replaceWith(Self.self, at: .atTheDoor, scene: .init(breakTheDoorCounter: 2)))
+      }.then { 
+        .replaceWith(self.updating { $0.breakTheDoorCounter = 2 }, at: .atTheDoor)
+      }
     }
 
   default:
@@ -399,7 +404,9 @@ choose(.atTheDoor) {
         "Maybe you should look for help"
         "It's going to be weird to ask someone to help you break into an apartment"
         "But you don't see many alternatives"
-      }.then(.replaceWith(LookForHelp.init()))
+      }.then {
+        .replaceWith(LookForHelp())
+      }
     }
   }
 }
@@ -413,27 +420,31 @@ choose {
 
   if scene.didLookAroundOnce {
     "Look around some more".onSelect {
-      "You take another look around"
-        .then(.replaceWith(LookAround.self, scene: scene))
+      "You take another look around".then { 
+        .replaceWith(LookAround())
+      }
     }
   } else {
     "Look around".onSelect {
-      "You take a look around"
-        .then(.replaceWith(LookAround.self, scene: scene))
+      "You take a look around".then {
+        .replaceWith(LookAround())
+      }
     }
   }
   
   if !scene.didAskAboutTheTarget {
     "Ask about the target".onSelect {
-      "You ask the woman at the checkout about the person you're looking for"
-        .then(.replaceWith(AskAboutTheTarget.self, scene: scene))
+      "You ask the woman at the checkout about the person you're looking for".then {
+        .replaceWith(AskAboutTheTarget())
+      }
     }
   }
   
   if scene.didAskAboutTheTarget, scene.didNoticeMissingBeans {
     "Ask about the beans".onSelect {
-      "'Did \(they) buy all the beans in the store?'"
-        .then(.replaceWith(AskAboutTheBeans.self, scene: scene))
+      "'Did \(they) buy all the beans in the store?'".then {
+        .replaceWith(AskAboutTheBeans())
+      }
     }
   }
   
@@ -452,7 +463,7 @@ Please also note that, as explained earlier, the `choose` function will describe
 
 ### `check`
 
-Use can use the `check` function to create a `Step` that depends on the current `Context<Game>`. The closure passed to the `check` function is enhanced by the `@StepBuilder` result builder, that allows to return a step with the usual `@resultBuilder` function, but it's just for __a single step__: `Narratore` doesn't allows for branching paths within a single `Branch`, but you can use the `then` function (that requires a `BranchChange`) to "branch out" from a specific code path of a `check` function.
+Use can use the `check` function to create a `Step` that depends on the current `Context<Game>`. The closure passed to the `check` function is enhanced by the `@StepBuilder` result builder, that allows to return a step with the usual `@resultBuilder` function, but it's just for __a single step__: `Narratore` doesn't allows for sceneing paths within a single `Scene`, but you can use the `then` function (that requires a `SceneChange`) to "scene out" from a specific code path of a `check` function.
 
 But even building a single `Step` can be good enough in several situations, in fact you can combine `check` with the `tell` function to generate a more complex set of conditions and outcomes, for example:
 
@@ -471,7 +482,7 @@ check {
 }
 ```
 
-Also, thanks to the fact that the `then` function is also an extension on `String`, it's possible to send a message with a `BranchChange` attached:
+Also, thanks to the fact that the `then` function is also an extension on `String`, it's possible to send a message with a `SceneChange` attached:
 
 ```swift
 check {
@@ -512,13 +523,13 @@ check {
 }
 ```
 
-In all uncovered code paths, internally, the `check` function will produce a `skip()` step, and it can also be used manually in case of `case` or `default` branches in a `switch` that would ideally return with `break`.
+In all uncovered code paths, internally, the `check` function will produce a `skip()` step, and it can also be used manually in case of `case` or `default` scenes in a `switch` that would ideally return with `break`.
 
 ### `update`
 
 The `update` function can be used to update the state of the `Game.World`. The function can be called at various levels, that is:
 
-- at the root level of a branch, as a free function;
+- at the root level of a scene, as a free function;
 
 ```swift
 "The rain is thin but persistent"
@@ -555,16 +566,16 @@ tell {
 
 ### `skip`
 
-In several contexts you'll be able to use the `skip` function to simply skip a narration step in specific conditions. You can also use `skip` at the root level of a branch to create a step that only acts as "marker", associating it to an `Anchor` to be able to jump to that point in the branch.
+In several contexts you'll be able to use the `skip` function to simply skip a narration step in specific conditions. You can also use `skip` at the root level of a scene to create a step that only acts as "marker", associating it to an `Anchor` to be able to jump to that point in the scene.
 
 ### `group`
 
-Use the `group` function to create an array of branch steps – using usual `@BranchBuilder` – that can be reused between branches: this is usually done via a generic function, declared outside a branch (thus, with a generic parameter constrained to be a `Branch`), that can be freely called inside branches, in order to reuse steps.
+Use the `group` function to create an array of scene steps – using usual `@SceneBuilder` – that can be reused between scenes: this is usually done via a generic function, declared outside a scene (thus, with a generic parameter constrained to be a `Scene`), that can be freely called inside scenes, in order to reuse steps.
 
-`group` is a lightweight alternative to creating a whole branch and `runThrough` it in several other branches, and here's an example of a generic function that uses `group` to create a check that's designed to be run in several branches, several times during the story:
+`group` is a lightweight alternative to creating a whole scene and `runThrough` it in several other scenes, and here's an example of a generic function that uses `group` to create a check that's designed to be run in several scenes, several times during the story:
 
 ```swift
-func checkMentalHealth<B: Branch>() -> [BranchStep<B>] where B.Parent.Game == SimpleStory {
+func checkMentalHealth<Scene: Scene>() -> [SceneStep<Scene>] where B.Parent.Game == SimpleStory {
   group {
     check {
       switch $0.world.mentalHealth {
@@ -573,7 +584,9 @@ func checkMentalHealth<B: Branch>() -> [BranchStep<B>] where B.Parent.Game == Si
           "Suddenly, you feel agitated and paranoid"
           "You're senses are leaving you..."
           "It's like falling asleep..."
-        }.then(.transitionTo(PassedOut.init()))
+        }.then {
+          .transitionTo(PassedOut())
+        }
         
       case 1 where !$0.script.didNarrate(.gotToMentalHealth1):
         tell {

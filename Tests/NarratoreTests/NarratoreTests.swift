@@ -2,16 +2,21 @@ import Narratore
 import XCTest
 
 class NarratoreTest: XCTestCase {
+  var testScene1_main = TestScene1(title: "testScene1_main")
+  var testScene1_other = TestScene1(title: "testScene1_other")
+  var testScene2_main = TestScene2(title: "testScene2_main")
+  var testScene2_other = TestScene2(title: "testScene2_other")
+
   override func setUp() {
     super.setUp()
-    TestScene1.Main.updateSteps { _ in "Test" }
-    TestScene1.Other.updateSteps { _ in "Test" }
-    TestScene2.Main.updateSteps { _ in "Test" }
-    TestScene2.Other.updateSteps { _ in "Test" }
+    testScene1_main.updateSteps { "Test" }
+    testScene1_other.updateSteps { "Test" }
+    testScene2_main.updateSteps { "Test" }
+    testScene2_other.updateSteps { "Test" }
   }
 
   func testReadRunnerScript() async {
-    TestScene1.Main.updateSteps { _ in
+    testScene1_main.updateSteps {
       "a"
 
       check { _ in
@@ -32,7 +37,7 @@ class NarratoreTest: XCTestCase {
       handler: .mock(),
       status: .init(
         world: .init(),
-        scene: TestScene1()
+        scene: testScene1_main
       )
     )
     await runner.start()
@@ -44,7 +49,7 @@ class NarratoreTest: XCTestCase {
   }
 
   func testReadRunnerScriptWithTell() async {
-    TestScene1.Main.updateSteps { _ in
+    testScene1_main.updateSteps {
       "a"
 
       check { context in
@@ -82,7 +87,7 @@ class NarratoreTest: XCTestCase {
       handler: .mock(),
       status: .init(
         world: .init(),
-        scene: TestScene1()
+        scene: testScene1_main
       )
     )
     await runner.start()
@@ -95,7 +100,7 @@ class NarratoreTest: XCTestCase {
   }
 
   func testReadRunnerWorld() async {
-    TestScene1.Main.updateSteps { _ in
+    testScene1_main.updateSteps {
       "a"
       update {
         $0.counter += 1
@@ -107,7 +112,7 @@ class NarratoreTest: XCTestCase {
       handler: .mock(),
       status: .init(
         world: .init(),
-        scene: TestScene1()
+        scene: testScene1_main
       )
     )
     await runner.start()
@@ -117,7 +122,7 @@ class NarratoreTest: XCTestCase {
   }
 
   func testBasicHandledEvents() async {
-    TestScene1.Main.updateSteps { _ in
+    testScene1_main.updateSteps {
       "a"
       "b".with(id: "1")
       "c".with(id: "2")
@@ -146,7 +151,7 @@ class NarratoreTest: XCTestCase {
       },
       status: .init(
         world: .init(),
-        scene: TestScene1()
+        scene: testScene1_main
       )
     ).start()
 
@@ -158,14 +163,14 @@ class NarratoreTest: XCTestCase {
     XCTAssertEqual(finalStatus!.info.script.narrated, ["1": 1, "2": 1])
   }
 
-  func testBasicBranchJump() async {
-    TestScene1.Main.updateSteps { _ in
+  func testBasicSceneJump() async {
+    testScene1_main.updateSteps {
       "a"
       "b"
-      then(.transitionTo(TestScene2()))
+      then { .transitionTo(self.testScene2_main) }
     }
 
-    TestScene2.Main.updateSteps { _ in
+    testScene2_main.updateSteps {
       "c"
       "d"
     }
@@ -174,7 +179,7 @@ class NarratoreTest: XCTestCase {
       handler: .mock(),
       status: .init(
         world: .init(),
-        scene: TestScene1()
+        scene: testScene1_main
       )
     )
     await runner.start()
@@ -184,28 +189,28 @@ class NarratoreTest: XCTestCase {
   }
 
   func testBasicChoice() async {
-    TestScene1.Main.updateSteps { _ in
+    testScene1_main.updateSteps {
       "a"
       choose { _ in
         "* 1".onSelect {
           "b"
             .with(id: "b is selected")
-            .then(.transitionTo(TestScene2()))
+            .then { .transitionTo(self.testScene2_main) }
         }
 
         "* 2".onSelect {
           "c"
             .with(id: "c is selected")
-            .then(.transitionTo(TestScene2.Other.self, scene: .init()))
+            .then { .transitionTo(self.testScene2_other) }
         }
 
         "* 3".onSelect {
-          "d".then(.transitionTo(TestScene2.Other.self, scene: .init()))
+          "d".then { .transitionTo(self.testScene2_other) }
         }
       }
     }
 
-    TestScene2.Main.updateSteps { _ in
+    testScene2_main.updateSteps {
       "c"
       "d"
     }
@@ -214,7 +219,7 @@ class NarratoreTest: XCTestCase {
       handler: .mock(),
       status: .init(
         world: .init(),
-        scene: TestScene1()
+        scene: testScene1_main
       )
     )
     await runner.start()
@@ -226,7 +231,7 @@ class NarratoreTest: XCTestCase {
   }
 
   func testBasicCheck() async {
-    TestScene1.Main.updateSteps { _ in
+    testScene1_main.updateSteps {
       "a"
 
       update {
@@ -237,12 +242,12 @@ class NarratoreTest: XCTestCase {
         if $0.world.counter == 10 {
           "b"
             .with { $0.counter -= 1 }
-            .then(.transitionTo(TestScene2()))
+            .then { .transitionTo(self.testScene2_main) }
         }
       }
     }
 
-    TestScene2.Main.updateSteps { _ in
+    testScene2_main.updateSteps {
       "c"
 
       check {
@@ -258,7 +263,7 @@ class NarratoreTest: XCTestCase {
       handler: .mock(),
       status: .init(
         world: .init(),
-        scene: TestScene1()
+        scene: testScene1_main
       )
     )
     await runner.start()
@@ -269,7 +274,7 @@ class NarratoreTest: XCTestCase {
   }
 
   func testForcedUpdate() async {
-    TestScene1.Main.updateSteps { _ in
+    testScene1_main.updateSteps {
       "a"
       "b"
 
@@ -294,7 +299,7 @@ class NarratoreTest: XCTestCase {
       }),
       status: .init(
         world: .init(),
-        scene: TestScene1()
+        scene: testScene1_main
       )
     )
     await runner!.start()
@@ -305,13 +310,13 @@ class NarratoreTest: XCTestCase {
   }
 
   func testReturnToChoiceWithUpdate() async {
-    TestScene1.Main.updateSteps { scene in
+    testScene1_main.updateSteps {
       "a"
       "b"
-      then(.transitionTo(TestScene1.Other.self, scene: scene))
+      then { .transitionTo(self.testScene1_other) }
     }
 
-    TestScene1.Other.updateSteps { scene in
+    testScene1_other.updateSteps {
       "c"
       "d".with(anchor: "return")
       "e"
@@ -321,7 +326,7 @@ class NarratoreTest: XCTestCase {
           "f".onSelect {
             "f"
               .with { $0.counter += 1 }
-              .then(.replaceWith(TestScene1.Other.self, at: "return", scene: scene))
+              .then { .replaceWith(self.testScene1_other, at: "return") }
           }
         }
 
@@ -329,7 +334,7 @@ class NarratoreTest: XCTestCase {
           "g".onSelect {
             "g"
               .with { $0.counter += 1 }
-              .then(.replaceWith(TestScene1.Other.self, at: "return", scene: scene))
+              .then { .replaceWith(self.testScene1_other, at: "return") }
           }
         }
 
@@ -337,13 +342,13 @@ class NarratoreTest: XCTestCase {
           "h".onSelect {
             "h"
               .with { $0.counter += 1 }
-              .then(.replaceWith(TestScene1.Other.self, at: "return", scene: scene))
+              .then { .replaceWith(self.testScene1_other, at: "return") }
           }
         }
 
         if $0.world.counter < 4 {
           "i".onSelect {
-            "i".then(.replaceWith(TestScene1.Other.self, at: "continue", scene: scene))
+            "i".then { .replaceWith(self.testScene1_other, at: "continue") }
           }
         }
       }
@@ -356,7 +361,7 @@ class NarratoreTest: XCTestCase {
       handler: .mock(),
       status: .init(
         world: .init(),
-        scene: TestScene1()
+        scene: testScene1_main
       )
     )
     await runner.start()
@@ -385,7 +390,7 @@ class NarratoreTest: XCTestCase {
   }
 
   func testReturnToChoiceWithUpdateAndSimpleStep() async {
-    TestScene2.Main.updateSteps { scene in
+    testScene2_main.updateSteps {
       "a"
       "b".with(anchor: "return")
       "c"
@@ -418,7 +423,7 @@ class NarratoreTest: XCTestCase {
 
       check {
         if $0.world.counter < 4 {
-          "h".then(.replaceWith(TestScene2.Main.self, at: "return", scene: scene))
+          "h".then { .replaceWith(self.testScene2_main, at: "return") }
         } else {
           "h"
         }
@@ -431,7 +436,7 @@ class NarratoreTest: XCTestCase {
       handler: .mock(),
       status: .init(
         world: .init(),
-        scene: TestScene2()
+        scene: testScene2_main
       )
     )
     await runner.start()
@@ -461,19 +466,19 @@ class NarratoreTest: XCTestCase {
   }
 
   func testRunThrough() async {
-    TestScene1.Main.updateSteps { _ in
+    testScene1_main.updateSteps {
       "1_1"
       "1_2"
       "1_3"
     }
 
-    TestScene1.Other.updateSteps { _ in
+    testScene1_other.updateSteps {
       "2_1"
       "2_2"
       "2_3"
     }
 
-    TestScene2.Main.updateSteps { _ in
+    testScene2_main.updateSteps {
       "a"
       "b".with(anchor: "return")
 
@@ -481,11 +486,11 @@ class NarratoreTest: XCTestCase {
         if $0.world.counter == 0 {
           "c"
             .with { $0.counter += 1 }
-            .then(.runThrough(TestScene1.Main.self, scene: .init()))
+            .then { .runThrough(self.testScene1_main) }
         } else {
           "d"
             .with { $0.counter += 1 }
-            .then(.runThrough(TestScene1.Other.self, scene: .init()))
+            .then { .runThrough(self.testScene1_other) }
         }
       }
 
@@ -493,7 +498,7 @@ class NarratoreTest: XCTestCase {
 
       check {
         if $0.world.counter < 2 {
-          "f".then(.replaceWith(TestScene2.Main.self, at: "return", scene: .init()))
+          "f".then { .replaceWith(self.testScene2_main, at: "return") }
         }
       }
 
@@ -505,7 +510,7 @@ class NarratoreTest: XCTestCase {
       handler: .mock(),
       status: .init(
         world: .init(),
-        scene: TestScene2()
+        scene: testScene2_main
       )
     )
     await runner.start()
@@ -533,18 +538,18 @@ class NarratoreTest: XCTestCase {
   }
 
   func testRunThroughAndReplaceWith() async {
-    TestScene1.Main.updateSteps { _ in
+    testScene1_main.updateSteps {
       "a"
       "b"
 
       "c"
-      then(.runThrough(TestScene1.Other.self, scene: .init()))
+      then { .runThrough(self.testScene1_other) }
 
       "d"
       "e"
     }
 
-    TestScene1.Other.updateSteps { scene in
+    testScene1_other.updateSteps {
       "f"
       "g".with(anchor: "continue")
       "h"
@@ -552,7 +557,7 @@ class NarratoreTest: XCTestCase {
         if $0.script.narrated["did see i", default: 0] == 0 {
           "i"
             .with(id: "did see i")
-            .then(.replaceWith(TestScene1.Other.self, at: "continue", scene: scene))
+            .then { .replaceWith(self.testScene1_other, at: "continue") }
         }
       }
       "j"
@@ -563,7 +568,7 @@ class NarratoreTest: XCTestCase {
       handler: .mock(),
       status: .init(
         world: .init(),
-        scene: TestScene1()
+        scene: testScene1_main
       )
     )
     await runner.start()
@@ -587,18 +592,18 @@ class NarratoreTest: XCTestCase {
   }
 
   func testRunThroughAndTransitionTo() async {
-    TestScene1.Main.updateSteps { _ in
+    testScene1_main.updateSteps {
       "a"
       "b"
 
       "c"
-      then(.runThrough(TestScene1.Other.self, scene: .init()))
+      then { .runThrough(self.testScene1_other) }
 
       "d"
       "e"
     }
 
-    TestScene1.Other.updateSteps { scene in
+    testScene1_other.updateSteps {
       "f"
       "g".with(anchor: "continue")
       "h"
@@ -606,7 +611,7 @@ class NarratoreTest: XCTestCase {
         if $0.script.narrated["did see i", default: 0] == 0 {
           "i"
             .with(id: "did see i")
-            .then(.transitionTo(TestScene1.Other.self, at: "continue", scene: scene))
+            .then { .transitionTo(self.testScene1_other, at: "continue") }
         }
       }
       "j"
@@ -617,7 +622,7 @@ class NarratoreTest: XCTestCase {
       handler: .mock(),
       status: .init(
         world: .init(),
-        scene: TestScene1()
+        scene: testScene1_main
       )
     )
     await runner.start()
@@ -639,7 +644,7 @@ class NarratoreTest: XCTestCase {
   }
 
   func testReplayNotAffectScript() async {
-    TestScene1.Main.updateSteps { _ in
+    testScene1_main.updateSteps {
       "a"
       "b"
       "c"
@@ -658,7 +663,7 @@ class NarratoreTest: XCTestCase {
       }),
       status: .init(
         world: .init(),
-        scene: TestScene1()
+        scene: testScene1_main
       )
     )
     await runner.start()
@@ -668,7 +673,7 @@ class NarratoreTest: XCTestCase {
   }
 
   func testReplayWithChange() async {
-    TestScene1.Main.updateSteps { _ in
+    testScene1_main.updateSteps {
       "a"
       check {
         if $0.world.counter == 0 {
@@ -692,7 +697,7 @@ class NarratoreTest: XCTestCase {
       }),
       status: .init(
         world: .init(),
-        scene: TestScene1()
+        scene: testScene1_main
       )
     )
     await runner.start()
@@ -702,7 +707,7 @@ class NarratoreTest: XCTestCase {
   }
 
   func testStopNotAffectScript() async {
-    TestScene1.Main.updateSteps { _ in
+    testScene1_main.updateSteps {
       "a"
       "b"
       "c"
@@ -718,7 +723,7 @@ class NarratoreTest: XCTestCase {
       }),
       status: .init(
         world: .init(),
-        scene: TestScene1()
+        scene: testScene1_main
       )
     )
     await runner.start()
@@ -727,33 +732,33 @@ class NarratoreTest: XCTestCase {
     XCTAssertEqual(info.script.words, ["a"])
   }
 
-  func testBranchChangeShorthand() async {
-    TestScene1.Main.updateSteps { _ in
+  func testSceneChangeShorthand() async {
+    testScene1_main.updateSteps {
       "a"
       check {
         if $0.script.narrated["did see b", default: 0] == 0 {
           "b"
             .with(id: "did see b")
-            .then(.replaceWith(TestScene2()))
+            .then { .replaceWith(self.testScene2_main) }
         }
       }
       "c"
     }
 
-    TestScene2.Main.updateSteps { _ in
+    testScene2_main.updateSteps {
       "d"
       "e"
-      then(.runThrough(TestScene1()))
+      then { .runThrough(self.testScene1_main) }
       "f"
       "g"
-      then(.transitionTo(TestScene1()))
+      then { .transitionTo(self.testScene1_main) }
     }
 
     let runner = Runner<TestGame>.init(
       handler: .mock(),
       status: .init(
         world: .init(),
-        scene: TestScene1()
+        scene: testScene1_main
       )
     )
     await runner.start()
@@ -774,7 +779,7 @@ class NarratoreTest: XCTestCase {
   }
 
   func testObserveTags() async {
-    TestScene1.Main.updateSteps { _ in
+    testScene1_main.updateSteps {
       "a"
       "b".with(tags: ["observe-1"])
       "c"
@@ -782,11 +787,11 @@ class NarratoreTest: XCTestCase {
       "e"
       choose(tags: ["observe-choice"]) { _ in
         "* 1".onSelect(tags: ["not-observe-1"]) {
-          "* 1".then(.transitionTo(TestScene2()))
+          "* 1".then { .transitionTo(self.testScene2_main) }
         }
 
         "* 2".onSelect(tags: ["observe-1"]) {
-          "* 2".then(.transitionTo(TestScene2()))
+          "* 2".then { .transitionTo(self.testScene2_main) }
         }
       }
     }
@@ -795,7 +800,7 @@ class NarratoreTest: XCTestCase {
       handler: .mock(),
       status: .init(
         world: .init(),
-        scene: TestScene1()
+        scene: testScene1_main
       )
     )
     await runner.start()
@@ -808,56 +813,97 @@ class NarratoreTest: XCTestCase {
   }
 
   func testEncodeDecode() async throws {
-    TestScene1.Main.updateSteps { _ in
-      "a"
-      "b"
-      "c"
-      then(.runThrough(TestScene2()))
-      "d"
-      "e"
+    enum LocalTestGame: Story {
+      enum Generate: Generating {
+        static var expectedRandomRatio: Double = 0.5
+        static var expectedUniqueString: String = "expected"
+
+        static func randomRatio() -> Double {
+          expectedRandomRatio
+        }
+
+        static func uniqueString() -> String {
+          expectedUniqueString
+        }
+      }
+
+      struct Message: Messaging {
+        var id: String?
+        var text: String
+      }
+
+      typealias Tag = String
+
+      struct World: Codable {
+        var counter = 0
+      }
+
+      static var scenes: [RawScene<LocalTestGame>] = [LocalTestScene1.raw, LocalTestScene2.raw]
     }
 
-    TestScene2.Main.updateSteps { _ in
-      "1"
-      "2"
-      "3"
+    struct LocalTestScene1: SceneType {
+      typealias Game = LocalTestGame
+
+      var steps: [SceneStep<Self>] {
+        "a"
+        "b"
+        "c"
+        then { .runThrough(LocalTestScene2()) }
+        "d"
+        "e"
+      }
     }
 
-    var status: Status<TestGame>!
+    struct LocalTestScene2: SceneType {
+      typealias Game = LocalTestGame
 
-    let runner1 = Runner<TestGame>.init(
-      handler: .mock(
-        handleEvent: {
-          if case .statusUpdated(let newStatus) = $0 {
-            status = newStatus
-          }
-        },
+      var steps: [SceneStep<Self>] {
+        "1"
+        "2"
+        "3"
+      }
+    }
+
+    var status: Status<LocalTestGame>!
+
+    let runner1 = Runner<LocalTestGame>.init(
+      handler: Handling<LocalTestGame>(
         acknowledgeNarration: {
           if $0.messages.map(\.text) == ["2"] {
             return .stop
           }
           return .advance
+        },
+        makeChoice: { $0.options.first.map { .advance(with: $0) } ?? .stop },
+        handleEvent: {
+          if case .statusUpdated(let newStatus) = $0 {
+            status = newStatus
+          }
         }
       ),
       status: .init(
         world: .init(),
-        scene: TestScene1()
+        scene: LocalTestScene1()
       )
     )
     await runner1.start()
 
     let encoded = try JSONEncoder().encode(status)
-    let decoded = try JSONDecoder().decode(Status<TestGame>.self, from: encoded)
+    let decoded = try JSONDecoder().decode(Status<LocalTestGame>.self, from: encoded)
 
     var narratedByRunner2: [String] = []
 
-    let runner2 = Runner<TestGame>.init(
-      handler: .mock(acknowledgeNarration: {
-        for text in $0.messages.map(\.text) {
-          narratedByRunner2.append(text)
-        }
-        return .advance
-      }),
+    let runner2 = Runner<LocalTestGame>.init(
+      handler: Handling<LocalTestGame>(
+        acknowledgeNarration: {
+          for text in $0.messages.map(\.text) {
+            narratedByRunner2.append(text)
+          }
+          return .advance
+        },
+        makeChoice: { $0.options.first.map { .advance(with: $0) } ?? .stop },
+        handleEvent: { _ in }
+      ),
       status: decoded
     )
     await runner2.start()

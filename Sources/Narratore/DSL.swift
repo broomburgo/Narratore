@@ -1,10 +1,10 @@
-/// Build a `BranchStep` out of a series of `Message`s.
-public func tell<B: Branch>(
-  _ anchor: B.Anchor? = nil,
-  tags: [B.Game.Tag] = [],
-  @MessagesBuilder<B.Game> getMessages: @escaping (Context<B.Game>) -> [B.Game.Message],
-  update: Update<B.Game>? = nil
-) -> BranchStep<B> {
+/// Build a `SceneStep` out of a series of `Message`s.
+public func tell<Scene: SceneType>(
+  _ anchor: Scene.Anchor? = nil,
+  tags: [Scene.Game.Tag] = [],
+  @MessagesBuilder<Scene.Game> getMessages: @escaping (Context<Scene.Game>) -> [Scene.Game.Message],
+  update: Update<Scene.Game>? = nil
+) -> SceneStep<Scene> {
   .init(anchor: anchor, getStep: .init {
     let messages = getMessages($0)
 
@@ -16,28 +16,28 @@ public func tell<B: Branch>(
   })
 }
 
-/// Create a `BranchStep` conditionally, based on the current `Context`.
-public func check<B: Branch>(
-  _ anchor: B.Anchor? = nil,
-  @StepBuilder<B.Game> _ getStep: @escaping (Context<B.Game>) -> Step<B.Game>
-) -> BranchStep<B> {
+/// Create a `SceneStep` conditionally, based on the current `Context`.
+public func check<Scene: SceneType>(
+  _ anchor: Scene.Anchor? = nil,
+  @StepBuilder<Scene.Game> _ getStep: @escaping (Context<Scene.Game>) -> Step<Scene.Game>
+) -> SceneStep<Scene> {
   .init(anchor: anchor, getStep: .init(getStep))
 }
 
 /// Update the current `World`.
-public func update<B: Branch>(
-  _ anchor: B.Anchor? = nil,
-  _ update: @escaping (inout B.Game.World) -> Void
-) -> BranchStep<B> {
+public func update<Scene: SceneType>(
+  _ anchor: Scene.Anchor? = nil,
+  _ update: @escaping (inout Scene.Game.World) -> Void
+) -> SceneStep<Scene> {
   .init(anchor: anchor, getStep: .init { _ in .init(update: update) })
 }
 
 /// Make the player choose between options.
-public func choose<B: Branch>(
-  _ anchor: B.Anchor? = nil,
-  tags: [B.Game.Tag] = [],
-  @OptionsBuilder<B.Game> getOptions: @escaping (Context<B.Game>) -> [Option<B.Game>]
-) -> BranchStep<B> {
+public func choose<Scene: SceneType>(
+  _ anchor: Scene.Anchor? = nil,
+  tags: [Scene.Game.Tag] = [],
+  @OptionsBuilder<Scene.Game> getOptions: @escaping (Context<Scene.Game>) -> [Option<Scene.Game>]
+) -> SceneStep<Scene> {
   .init(
     anchor: anchor,
     getStep: .init {
@@ -46,10 +46,10 @@ public func choose<B: Branch>(
   )
 }
 
-/// Create a `BranchStep` with a jump `Step` and empty `Narration`.
-public func then<B: Branch>(
-  _ branchChange: BranchChange<B.Game>
-) -> BranchStep<B> {
+/// Create a `SceneStep` with a jump `Step` and empty `Narration`.
+public func then<Scene: SceneType>(
+  _ getSceneChange: @escaping () -> SceneChange<Scene.Game>
+) -> SceneStep<Scene> {
   .init(
     anchor: nil,
     getStep: .init { _ in
@@ -60,7 +60,7 @@ public func then<B: Branch>(
             tags: [],
             update: nil
           ),
-          branchChange: branchChange
+          sceneChange: getSceneChange()
         )
       )
     }
@@ -68,25 +68,25 @@ public func then<B: Branch>(
 }
 
 /// Creates a step that will be skipped; useful to establish a simple anchor that will not make the player acknowledge a narration or make a choice.
-public func skip<B: Branch>(_ anchor: B.Anchor? = nil) -> BranchStep<B> {
+public func skip<Scene: SceneType>(_ anchor: Scene.Anchor? = nil) -> SceneStep<Scene> {
   .init(anchor: anchor, getStep: .init { _ in .skip })
 }
 
-/// Groups branch steps together.
-public func group<B: Branch>(@BranchBuilder<B> _ getSteps: () -> [BranchStep<B>])
-  -> [BranchStep<B>]
+/// Groups scene steps together.
+public func group<Scene: SceneType>(@SceneBuilder<Scene> _ getSteps: () -> [SceneStep<Scene>])
+  -> [SceneStep<Scene>]
 {
   getSteps()
 }
 
 extension String {
-  /// Create a `BranchStep` with a narration `Step` created from the root `String`.
-  public func with<B: Branch>(
-    anchor: B.Anchor? = nil,
-    id: B.Game.Message.ID? = nil,
-    tags: [B.Game.Tag] = [],
-    update: Update<B.Game>? = nil
-  ) -> BranchStep<B> {
+  /// Create a `SceneStep` with a narration `Step` created from the root `String`.
+  public func with<Scene: SceneType>(
+    anchor: Scene.Anchor? = nil,
+    id: Scene.Game.Message.ID? = nil,
+    tags: [Scene.Game.Tag] = [],
+    update: Update<Scene.Game>? = nil
+  ) -> SceneStep<Scene> {
     .init(
       anchor: anchor,
       getStep: .init { _ in
@@ -134,11 +134,11 @@ extension String {
 
   /// Create a `Step` with a `Jump` containing the `Narration` created from the root `String`.
   public func then<Game: Setting>(
-    _ branchChange: BranchChange<Game>
+    _ getSceneChange: () -> SceneChange<Game>
   ) -> Step<Game> {
     .init(jump: .init(
       narration: .init(messages: [.init(id: nil, text: self)], tags: [], update: nil),
-      branchChange: branchChange
+      sceneChange: getSceneChange()
     ))
   }
 }
@@ -146,11 +146,11 @@ extension String {
 extension Narration {
   /// Create a `Step` with a `Jump` containing the root `Narration`.
   public func then(
-    _ branchChange: BranchChange<Game>
+    _ getSceneChange: () -> SceneChange<Game>
   ) -> Step<Game> {
     .init(jump: .init(
       narration: self,
-      branchChange: branchChange
+      sceneChange: getSceneChange()
     ))
   }
 }

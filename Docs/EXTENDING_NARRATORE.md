@@ -191,16 +191,16 @@ Notice that:
 - the `var text: String { get }` requirement is satisfied, in this case, via a computed property, that considers `Localization.current`, `Localization.base`, the `translations` with which the message is constructed, and the `values` template dictionary;
 - the `init(id: ID?, text: String)` requirement is still satisfied, so this message can be built with a simple `String`.
 
-In order to be able to use this in the `Narratore` DSL in an ergonomic way, we need a simple function that can be called in the context of a `@BranchBuilder`. One option is to extend `String` with a particular function that returns a `BranchStep`:
+In order to be able to use this in the `Narratore` DSL in an ergonomic way, we need a simple function that can be called in the context of a `@SceneBuilder`. One option is to extend `String` with a particular function that returns a `SceneStep`:
 
 ```swift
 extension String {
-  public func localized<B: Branch, Localization: Localizing>(
-    anchor: B.Anchor? = nil,
-    id: B.Game.Message.ID? = nil,
+  public func localized<Scene: SceneType, Localization: Localizing>(
+    anchor: Scene.Anchor? = nil,
+    id: Scene.Game.Message.ID? = nil,
     values: [String: String] = [:],
     translations: [Localization.Language: String] = [:]
-  ) -> BranchStep<B> where B.Game.Message == LocalizedMessage<Localization> {
+  ) -> SceneStep<Scene> where Scene.Game.Message == LocalizedMessage<Localization> {
     .init(
       anchor: anchor,
       getStep: .init { _ in
@@ -226,7 +226,7 @@ extension String {
 
 Notice that this function is completely generic:
 
-- it doesn't depend on a concrete specific `Game: Setting`, it only requires that the `Message` of the `Game` (reachable through `B.Game` where `B` is the `Branch`) is in fact a `LocalizedMessage`;
+- it doesn't depend on a concrete specific `Game: Setting`, it only requires that the `Message` of the `Game` (reachable through `B.Game` where `B` is the `Scene`) is in fact a `LocalizedMessage`;
 - it doesn't depend on a concrete specific `Localization` type, it only requires that it conforms to the `Localizing` protocol.
 
 As you can see, the `LocalizedMessage` could be added to any `Game: Setting`, and the `localized` DSL function would then become "magically" available. For example, we can add this new `Localization` parameter to our `AdvancedSetting`, and thus be able to use `LocalizedMessage` in it:
@@ -239,7 +239,7 @@ public enum AdvancedSetting<Extra: SettingExtra, Localization: Localizing>: Sett
 }
 ```
 
-Finally, here's a very basic example of a concrete `AdvancedStory`, that uses the `AdvancedSetting` and shows how the `localized` function can be used in the context of a `@BranchBuilder`:
+Finally, here's a very basic example of a concrete `AdvancedStory`, that uses the `AdvancedSetting` and shows how the `localized` function can be used in the context of a `@SceneBuilder`:
 
 ```swift
 public enum AdvancedExtra: SettingExtra {
@@ -262,40 +262,28 @@ public enum AdvancedLocalization: Localizing {
   public static var current: Language = .italian
 }
 
-
 public typealias AdvancedStory = AdvancedSetting<AdvancedExtra, AdvancedLocalization>
 
 extension AdvancedStory: Story {
-  public static var scenes: [RawScene<Self>] {
-    [
-      AdvancedScene.raw,
-    ]
-  }
+  public static let scenes: [RawScene<Self>] = [
+    AdvancedScene.raw,
+  ]
 }
 
-struct AdvancedScene: Scene {
+struct AdvancedScene: SceneType {
   typealias Game = AdvancedStory
 
-  static let branches: [RawBranch<AdvancedStory>] = [
-    Main.raw,
-  ]
+  var steps: [SceneStep<Self>] {
+    "Hello!".localized(translations: [
+      .italian: "Ciao!",
+    ])
 
-  enum Main: Branch {
-    typealias Parent = AdvancedScene
-
-    @BranchBuilder<Self>
-    static func getSteps(for _: AdvancedScene) -> [BranchStep<Self>] {
-      "Hello!".localized(translations: [
-        .italian: "Ciao!",
-      ])
-
-      "This is a story in english created with GAME_ENGINE_NAME".localized(
-        values: ["GAME_ENGINE_NAME": "Narratore"],
-        translations: [
-          .italian: "Questa è una storia in italiano creata con GAME_ENGINE_NAME",
-        ]
-      )
-    }
+    "This is a story in english created with GAME_ENGINE_NAME".localized(
+      values: ["GAME_ENGINE_NAME": "Narratore"],
+      translations: [
+        .italian: "Questa è una storia in italiano creata con GAME_ENGINE_NAME",
+      ]
+    )
   }
 }
 ```

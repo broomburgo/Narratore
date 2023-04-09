@@ -89,7 +89,7 @@ public struct Choice<Game: Setting> {
 /// `Option` includes the following properties:
 /// - the `Message` associated with that particular option;
 /// - a list of `Tag`s, possibly empty;
-/// - the branch `Jump` that must be performed if the option is selected.
+/// - the scene `Jump` that must be performed if the option is selected.
 public struct Option<Game: Setting> {
   public var message: Game.Message
   public var step: Step<Game>
@@ -102,18 +102,18 @@ public struct Option<Game: Setting> {
   }
 }
 
-/// Describes a jump between branches in the story.
+/// Describes a jump between scenes in the story.
 ///
 /// `Jump` includes the following properties:
-/// - the `Narration` step to present immediately before the branch change;
-/// - the kind of jump between branches.
+/// - the `Narration` step to present immediately before the scene change;
+/// - the kind of jump between scenes.
 public struct Jump<Game: Setting> {
   public var narration: Narration<Game>
-  public var branchChange: BranchChange<Game>
+  public var sceneChange: SceneChange<Game>
 
-  public init(narration: Narration<Game>, branchChange: BranchChange<Game>) {
+  public init(narration: Narration<Game>, sceneChange: SceneChange<Game>) {
     self.narration = narration
-    self.branchChange = branchChange
+    self.sceneChange = sceneChange
   }
 }
 
