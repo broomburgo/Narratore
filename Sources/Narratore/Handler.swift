@@ -14,7 +14,7 @@ public protocol Handler {
 
   func acknowledge(narration: Player<Game>.Narration) async -> Next<Game, Void>
   func make(choice: Player<Game>.Choice) async -> Next<Game, Player<Game>.Option>
-  func answer(request: Player<Game>.TextRequest) async -> Next<Game, String>
+  func answer(request: Player<Game>.TextRequest) async -> Next<Game, Player<Game>.ValidatedText>
   func handle(event: Player<Game>.Event)
 }
 
@@ -42,9 +42,13 @@ public enum Player<Game: Setting> {
     public let tags: [Game.Tag]
 
     public enum Validation {
-      case valid
+      case valid(ValidatedText)
       case invalid(Game.Message)
     }
+  }
+
+  public struct ValidatedText {
+    public let value: String
   }
 
   public enum Event {
@@ -139,15 +143,15 @@ public enum Failure<Game: Setting>: Error {
 
 /// The "protocol witness" version of `Handler`, used internally to type-erase the `Handler` passed to `Runner`.
 public struct Handling<Game: Setting> {
-  var _acknowledgeNarration: (Player<Game>.Narration) async -> Next<Game, Void>
-  var _makeChoice: (Player<Game>.Choice) async -> Next<Game, Player<Game>.Option>
-  var _answerRequest: (Player<Game>.TextRequest) async -> Next<Game, String>
-  var _handleEvent: (Player<Game>.Event) -> Void
+  private var _acknowledgeNarration: (Player<Game>.Narration) async -> Next<Game, Void>
+  private var _makeChoice: (Player<Game>.Choice) async -> Next<Game, Player<Game>.Option>
+  private var _answerRequest: (Player<Game>.TextRequest) async -> Next<Game, Player<Game>.ValidatedText>
+  private var _handleEvent: (Player<Game>.Event) -> Void
 
   public init(
     acknowledgeNarration: @escaping (Player<Game>.Narration) async -> Next<Game, Void>,
     makeChoice: @escaping (Player<Game>.Choice) async -> Next<Game, Player<Game>.Option>,
-    answerRequest: @escaping (Player<Game>.TextRequest) async -> Next<Game, String>,
+    answerRequest: @escaping (Player<Game>.TextRequest) async -> Next<Game, Player<Game>.ValidatedText>,
     handleEvent: @escaping (Player<Game>.Event) -> Void
   ) {
     _acknowledgeNarration = acknowledgeNarration
@@ -177,7 +181,7 @@ extension Handling: Handler {
     await _makeChoice(choice)
   }
 
-  public func answer(request: Player<Game>.TextRequest) async -> Next<Game, String> {
+  public func answer(request: Player<Game>.TextRequest) async -> Next<Game, Player<Game>.ValidatedText> {
     await _answerRequest(request)
   }
 

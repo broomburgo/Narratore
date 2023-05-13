@@ -91,6 +91,41 @@ extension Step {
     }
   }
 
+  public init(textRequest: TextRequest<Game>) {
+    self.init { info, handling in
+      let next = await handling.answer(request: .init(
+        message: textRequest.message,
+        validate: {
+          switch textRequest.validate($0) {
+          case .valid(let validated):
+            return .valid(.init(value: validated.text))
+
+          case .invalid(let message):
+            return .invalid(message)
+          }
+        },
+        tags: textRequest.tags
+      ))
+
+      switch next.action {
+      case .advance(let validatedText):
+        info.script.append(textRequest: textRequest)
+        next.update?(&info.world)
+
+        let step = textRequest.getStep(.init(text: validatedText.value))
+        return await step.apply(info: &info, handling: handling)
+
+      case .replay:
+        next.update?(&info.world)
+        return .replay
+
+      case .stop:
+        next.update?(&info.world)
+        return .stop
+      }
+    }
+  }
+
   public init(narration: Narration<Game>) {
     self.init { info, handling in
       let next: Next<Game, Void>

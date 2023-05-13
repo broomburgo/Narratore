@@ -38,6 +38,21 @@ public struct Script<Game: Setting>: Codable {
       observed[tag, default: 0] += 1
     }
   }
+
+  /// Add a `TextRequest` step to the story.
+  public mutating func append(textRequest: TextRequest<Game>) {
+    for tag in textRequest.tags.filter(\.shouldObserve) {
+      observed[tag, default: 0] += 1
+    }
+
+    if let message = textRequest.message {
+      if let id = message.id {
+        narrated[id, default: 0] += 1
+      }
+
+      words.append(message.text)
+    }
+  }
 }
 
 /// Describes a step in the narration of the story.
@@ -66,11 +81,12 @@ public struct Narration<Game: Setting> {
 public struct Choice<Game: Setting> {
   public var options: [Option<Game>]
   public var tags: [Game.Tag]
-  public var config: Config = .init()
+  public var config: Config
 
-  public init(options: [Option<Game>], tags: [Game.Tag], config _: Config = .init()) {
+  public init(options: [Option<Game>], tags: [Game.Tag], config: Config = .init()) {
     self.options = options
     self.tags = tags
+    self.config = config
   }
 
   public struct Config {
@@ -91,25 +107,24 @@ public struct Choice<Game: Setting> {
 /// - the scene `Step` that must be performed if the option is selected.
 /// - a list of `Tag`s, possibly empty;
 public struct Option<Game: Setting> {
-  public var message: Game.Message
-  public var step: Step<Game>
-  public var tags: [Game.Tag]
-
-  init(message: Game.Message, step: Step<Game>, tags: [Game.Tag]) {
-    self.message = message
-    self.step = step
-    self.tags = tags
-  }
+  public let message: Game.Message
+  public let step: Step<Game>
+  public let tags: [Game.Tag]
 }
 
 public struct TextRequest<Game: Setting> {
   public let message: Game.Message?
   public let validate: (String) -> Validation
+  public let getStep: (Validated) -> Step<Game>
   public let tags: [Game.Tag]
 
   public enum Validation {
-    case valid(Step<Game>)
+    case valid(Validated)
     case invalid(Game.Message)
+  }
+
+  public struct Validated {
+    public let text: String
   }
 }
 
