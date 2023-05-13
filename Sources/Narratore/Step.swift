@@ -110,6 +110,7 @@ extension Step {
       switch next.action {
       case .advance(let validatedText):
         info.script.append(textRequest: textRequest)
+        info.script.append(narration: .init(messages: [.init(id: nil, text: validatedText.value)], tags: [], update: nil))
         next.update?(&info.world)
 
         let step = textRequest.getStep(.init(text: validatedText.value))

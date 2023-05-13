@@ -932,18 +932,18 @@ class NarratoreTest: XCTestCase {
         receivedText = $0
         return .valid(.init(text: $0))
       } ifValid: { _, _ in
-        "c"
+        "d"
       }
 
-      "d"
+      "e"
     }
 
     var receivedRequest: TestPlayer.TextRequest?
-    
+
     let runner = Runner<TestGame>.init(
       handler: .mock(answerRequest: {
         receivedRequest = $0
-        switch $0.validate("valid") {
+        switch $0.validate("c") {
         case .valid(let validated):
           return .advance(with: validated)
 
@@ -960,8 +960,8 @@ class NarratoreTest: XCTestCase {
     await runner.start()
 
     let story = await runner.info.script
-    XCTAssertEqual(story.words, ["a", "b", "c", "d"])
-    XCTAssertEqual(receivedText, "valid")
+    XCTAssertEqual(story.words, ["a", "b", "c", "d", "e"])
+    XCTAssertEqual(receivedText, "c")
     XCTAssertEqual(receivedRequest?.message?.text, "b")
   }
 }
