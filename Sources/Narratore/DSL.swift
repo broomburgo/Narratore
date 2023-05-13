@@ -46,6 +46,26 @@ public func choose<Scene: SceneType>(
   )
 }
 
+public func requestText<Scene: SceneType>(
+  _ anchor: Scene.Anchor? = nil,
+  tags: [Scene.Game.Tag] = [],
+  @OptionalMessageBuilder<Scene.Game> getMessage: @escaping () -> Scene.Game.Message?,
+  validate: @escaping (String) -> TextRequest<Scene.Game>.Validation,
+  @StepBuilder<Scene.Game> ifValid: @escaping (Context<Scene.Game>, TextRequest<Scene.Game>.Validated) -> Step<Scene.Game>
+) -> SceneStep<Scene> {
+  .init(
+    anchor: anchor,
+    getStep: .init { context in
+      .init(textRequest: .init(
+        message: getMessage(),
+        validate: validate,
+        getStep: { ifValid(context, $0) },
+        tags: tags
+      ))
+    }
+  )
+}
+
 /// Create a `SceneStep` with a jump `Step` and empty `Narration`.
 public func then<Scene: SceneType>(
   _ getSceneChange: @escaping () -> SceneChange<Scene.Game>
