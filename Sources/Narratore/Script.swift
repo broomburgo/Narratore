@@ -88,8 +88,8 @@ public struct Choice<Game: Setting> {
 ///
 /// `Option` includes the following properties:
 /// - the `Message` associated with that particular option;
+/// - the scene `Step` that must be performed if the option is selected.
 /// - a list of `Tag`s, possibly empty;
-/// - the scene `Jump` that must be performed if the option is selected.
 public struct Option<Game: Setting> {
   public var message: Game.Message
   public var step: Step<Game>
@@ -99,6 +99,17 @@ public struct Option<Game: Setting> {
     self.message = message
     self.step = step
     self.tags = tags
+  }
+}
+
+public struct TextRequest<Game: Setting> {
+  public let message: Game.Message?
+  public let validate: (String) -> Validation
+  public let tags: [Game.Tag]
+
+  public enum Validation {
+    case valid(Step<Game>)
+    case invalid(Game.Message)
   }
 }
 

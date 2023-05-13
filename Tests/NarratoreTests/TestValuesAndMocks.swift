@@ -133,6 +133,7 @@ extension Handler where Self == Handling<TestGame> {
     .init(
       acknowledgeNarration: acknowledgeNarration ?? { _ in .advance },
       makeChoice: makeChoice ?? { $0.options.first.map { .advance(with: $0) } ?? .stop },
+      answerRequest: { _ in fatalError() },
       handleEvent: handleEvent ?? { _ in }
     )
   }

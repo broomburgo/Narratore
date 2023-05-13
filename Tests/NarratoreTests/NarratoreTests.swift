@@ -875,6 +875,7 @@ class NarratoreTest: XCTestCase {
           return .advance
         },
         makeChoice: { $0.options.first.map { .advance(with: $0) } ?? .stop },
+        answerRequest: { _ in fatalError() },
         handleEvent: {
           if case .statusUpdated(let newStatus) = $0 {
             status = newStatus
@@ -902,6 +903,7 @@ class NarratoreTest: XCTestCase {
           return .advance
         },
         makeChoice: { $0.options.first.map { .advance(with: $0) } ?? .stop },
+        answerRequest: { _ in fatalError() },
         handleEvent: { _ in }
       ),
       status: decoded
