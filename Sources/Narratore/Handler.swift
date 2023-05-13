@@ -43,7 +43,7 @@ public enum Player<Game: Setting> {
 
     public enum Validation {
       case valid(ValidatedText)
-      case invalid(Game.Message)
+      case invalid(Game.Message?)
     }
   }
 

@@ -134,21 +134,23 @@ class NarratoreTest: XCTestCase {
     var gameEndedCount = 0
 
     await Runner<TestGame>.init(
-      handler: .mock {
-        switch $0 {
-        case .statusUpdated(let status):
-          finalStatus = status
+      handler: .mock(
+        handleEvent: {
+          switch $0 {
+          case .statusUpdated(let status):
+            finalStatus = status
 
-        case .errorProduced(let error):
-          XCTFail("\(error)")
+          case .errorProduced(let error):
+            XCTFail("\(error)")
 
-        case .gameEnded:
-          gameEndedCount += 1
+          case .gameEnded:
+            gameEndedCount += 1
 
-        case .gameStarted:
-          gameStartedCount += 1
+          case .gameStarted:
+            gameStartedCount += 1
+          }
         }
-      },
+      ),
       status: .init(
         world: .init(),
         scene: testScene1_main
@@ -875,7 +877,7 @@ class NarratoreTest: XCTestCase {
           return .advance
         },
         makeChoice: { $0.options.first.map { .advance(with: $0) } ?? .stop },
-        answerRequest: { _ in fatalError() },
+        answerRequest: { _ in XCTFail("shouldn't be here"); return .stop },
         handleEvent: {
           if case .statusUpdated(let newStatus) = $0 {
             status = newStatus
@@ -903,7 +905,7 @@ class NarratoreTest: XCTestCase {
           return .advance
         },
         makeChoice: { $0.options.first.map { .advance(with: $0) } ?? .stop },
-        answerRequest: { _ in fatalError() },
+        answerRequest: { _ in XCTFail("shouldn't be here"); return .stop },
         handleEvent: { _ in }
       ),
       status: decoded
@@ -916,5 +918,50 @@ class NarratoreTest: XCTestCase {
     XCTAssertEqual(info1.script.words, ["a", "b", "c", "1"])
     XCTAssertEqual(info2.script.words, ["a", "b", "c", "1", "2", "3", "d", "e"])
     XCTAssertEqual(narratedByRunner2, ["2", "3", "d", "e"])
+  }
+
+  func testRequestText() async {
+    var receivedText: String?
+
+    testScene1_main.updateSteps {
+      "a"
+
+      requestText {
+        "b"
+      } validate: {
+        receivedText = $0
+        return .valid(.init(text: $0))
+      } ifValid: { _, _ in
+        "c"
+      }
+
+      "d"
+    }
+
+    var receivedRequest: TestPlayer.TextRequest?
+    
+    let runner = Runner<TestGame>.init(
+      handler: .mock(answerRequest: {
+        receivedRequest = $0
+        switch $0.validate("valid") {
+        case .valid(let validated):
+          return .advance(with: validated)
+
+        case .invalid(let message):
+          XCTFail("shouldn't fail (\(message ?? .init(text: "nil")))")
+          return .stop
+        }
+      }),
+      status: .init(
+        world: .init(),
+        scene: testScene1_main
+      )
+    )
+    await runner.start()
+
+    let story = await runner.info.script
+    XCTAssertEqual(story.words, ["a", "b", "c", "d"])
+    XCTAssertEqual(receivedText, "valid")
+    XCTAssertEqual(receivedRequest?.message?.text, "b")
   }
 }

@@ -120,11 +120,15 @@ public struct TextRequest<Game: Setting> {
 
   public enum Validation {
     case valid(Validated)
-    case invalid(Game.Message)
+    case invalid(Game.Message?)
   }
 
   public struct Validated {
     public let text: String
+
+    public init(text: String) {
+      self.text = text
+    }
   }
 }
 
