@@ -3,9 +3,10 @@
 /// A `Handler` for a game will likely be the type where most of the code to run the game is located.
 ///
 /// For a type to be a `Handler`, it must implement 3 functions:
-/// - `handle(event:)`, used to handle a static event related to the flow of the game;
 /// - `acknowledge(narration:)`, used to handle a `Narration` step;
 /// - `make(choice:)`, used to ask the player to make some choice.
+/// - `answer(request:)`, used to get from the player some text input;
+/// - `handle(event:)`, used to handle a static event related to the flow of the game;
 ///
 /// `acknowledge(narration:)`, and `make(choice:)` are `async` functions, because they need to wait for a player's reaction, and they must return a `Next` instance, where the engine can tell the `Runner` what to do next after a certain step.
 public protocol Handler {
@@ -13,6 +14,7 @@ public protocol Handler {
 
   func acknowledge(narration: Player<Game>.Narration) async -> Next<Game, Void>
   func make(choice: Player<Game>.Choice) async -> Next<Game, Player<Game>.Option>
+  func answer(request: Player<Game>.TextRequest) async -> Next<Game, Player<Game>.ValidatedText>
   func handle(event: Player<Game>.Event)
 }
 
@@ -34,6 +36,21 @@ public enum Player<Game: Setting> {
     public let tags: [Game.Tag]
   }
 
+  public struct TextRequest {
+    public let message: Game.Message?
+    public let validate: (String) -> Validation
+    public let tags: [Game.Tag]
+
+    public enum Validation {
+      case valid(ValidatedText)
+      case invalid(Game.Message?)
+    }
+  }
+
+  public struct ValidatedText {
+    public let value: String
+  }
+
   public enum Event {
     case gameStarted(Status<Game>)
     case gameEnded
@@ -47,7 +64,7 @@ public enum Player<Game: Setting> {
 /// `Next` declares 2 properties:
 /// - `action: Action`, that defines what to do next;
 /// - `update: Change?`, and optional update to the state of the game `World`.
-public struct Next<Game: Setting, A> {
+public struct Next<Game: Setting, Advancement> {
   public var action: Action
   public var update: Update<Game>?
 
@@ -60,18 +77,18 @@ public struct Next<Game: Setting, A> {
   }
 
   /// There are 3 possible actions after a step in the story:
-  /// - `advance`: move on with the story, passing along a value of type `A`;
+  /// - `advance`: move on with the story, passing along a value of type `Advancement`;
   /// - `replay`: play again the last step, without updating the state of the story;
   /// - `stop`: end the game.
   public enum Action {
-    case advance(A)
+    case advance(Advancement)
     case replay
     case stop
   }
 }
 
 extension Next {
-  public static func advance(with value: A, update: Update<Game>? = nil) -> Self {
+  public static func advance(with value: Advancement, update: Update<Game>? = nil) -> Self {
     .init(
       action: .advance(value),
       update: update
@@ -100,7 +117,7 @@ extension Next {
   }
 }
 
-extension Next where A == Void {
+extension Next where Advancement == Void {
   public static func advance(update: @escaping Update<Game>) -> Self {
     .init(
       action: .advance(()),
@@ -126,17 +143,20 @@ public enum Failure<Game: Setting>: Error {
 
 /// The "protocol witness" version of `Handler`, used internally to type-erase the `Handler` passed to `Runner`.
 public struct Handling<Game: Setting> {
-  var _acknowledgeNarration: (Player<Game>.Narration) async -> Next<Game, Void>
-  var _makeChoice: (Player<Game>.Choice) async -> Next<Game, Player<Game>.Option>
-  var _handleEvent: (Player<Game>.Event) -> Void
+  private var _acknowledgeNarration: (Player<Game>.Narration) async -> Next<Game, Void>
+  private var _makeChoice: (Player<Game>.Choice) async -> Next<Game, Player<Game>.Option>
+  private var _answerRequest: (Player<Game>.TextRequest) async -> Next<Game, Player<Game>.ValidatedText>
+  private var _handleEvent: (Player<Game>.Event) -> Void
 
   public init(
     acknowledgeNarration: @escaping (Player<Game>.Narration) async -> Next<Game, Void>,
     makeChoice: @escaping (Player<Game>.Choice) async -> Next<Game, Player<Game>.Option>,
+    answerRequest: @escaping (Player<Game>.TextRequest) async -> Next<Game, Player<Game>.ValidatedText>,
     handleEvent: @escaping (Player<Game>.Event) -> Void
   ) {
     _acknowledgeNarration = acknowledgeNarration
     _makeChoice = makeChoice
+    _answerRequest = answerRequest
     _handleEvent = handleEvent
   }
 }
@@ -146,6 +166,7 @@ extension Handler {
     .init(
       acknowledgeNarration: acknowledge(narration:),
       makeChoice: make(choice:),
+      answerRequest: answer(request:),
       handleEvent: handle(event:)
     )
   }
@@ -158,6 +179,10 @@ extension Handling: Handler {
 
   public func make(choice: Player<Game>.Choice) async -> Next<Game, Player<Game>.Option> {
     await _makeChoice(choice)
+  }
+
+  public func answer(request: Player<Game>.TextRequest) async -> Next<Game, Player<Game>.ValidatedText> {
+    await _answerRequest(request)
   }
 
   public func handle(event: Player<Game>.Event) {

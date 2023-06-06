@@ -126,13 +126,15 @@ struct TestScene2: SceneType {
 
 extension Handler where Self == Handling<TestGame> {
   static func mock(
-    handleEvent: ((TestPlayer.Event) -> Void)? = nil,
     acknowledgeNarration: ((TestPlayer.Narration) async -> Next<TestGame, Void>)? = nil,
-    makeChoice: ((TestPlayer.Choice) async -> Next<TestGame, TestPlayer.Option>)? = nil
+    makeChoice: ((TestPlayer.Choice) async -> Next<TestGame, TestPlayer.Option>)? = nil,
+    answerRequest: ((TestPlayer.TextRequest) async -> Next<Game, TestPlayer.ValidatedText>)? = nil,
+    handleEvent: ((TestPlayer.Event) -> Void)? = nil
   ) -> Handling<TestGame> {
     .init(
       acknowledgeNarration: acknowledgeNarration ?? { _ in .advance },
       makeChoice: makeChoice ?? { $0.options.first.map { .advance(with: $0) } ?? .stop },
+      answerRequest: answerRequest ?? {  _ in .stop },
       handleEvent: handleEvent ?? { _ in }
     )
   }

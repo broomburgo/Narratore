@@ -28,6 +28,23 @@ public enum StepBuilder<Game: Setting> {
 }
 
 @resultBuilder
+public enum OptionalMessageBuilder<Game: Setting> {
+  public typealias Component = Game.Message?
+
+  public static func buildExpression(_ expression: String) -> Component {
+    .init(id: nil, text: expression)
+  }
+
+  public static func buildExpression(_ expression: Game.Message?) -> Component {
+    expression
+  }
+
+  public static func buildBlock(_ component: Component) -> Component {
+    component
+  }
+}
+
+@resultBuilder
 public enum MessagesBuilder<Game: Setting> {
   public typealias Component = [Game.Message]
 
