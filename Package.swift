@@ -5,7 +5,7 @@ import PackageDescription
 
 let package = Package(
     name: "Narratore",
-    platforms: [.iOS(.v13), .macOS(.v10_15)],
+    platforms: [.iOS(.v13), .macOS(.v13)],
     products: [
         .library(
             name: "Narratore",
