@@ -46,6 +46,7 @@ public func choose<Scene: SceneType>(
   )
 }
 
+/// Ask the player to enter some text.
 public func requestText<Scene: SceneType>(
   _ anchor: Scene.Anchor? = nil,
   tags: [Scene.Game.Tag] = [],
