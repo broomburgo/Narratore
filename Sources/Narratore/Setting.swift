@@ -3,7 +3,7 @@
 /// This protocol declares the key associated types that will define the structure of the `Game`. These are the following:
 /// - `Generate`: used to provide generating functions for values;
 /// - `Message`: used to define the messages through which the story is narrated;
-/// - `Tag`: additional metadata that can be associated to the stepts of the story;
+/// - `Tag`: additional metadata that can be associated to the steps of the story;
 /// - `World`: represents the state of the game world, and must be `Codable`.
 public protocol Setting {
   associatedtype Generate: Generating
