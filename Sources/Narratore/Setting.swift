@@ -46,3 +46,5 @@ public protocol Tagging: Hashable & Codable {
 extension Tagging {
   public var shouldObserve: Bool { false }
 }
+
+extension Never: Tagging {}
