@@ -1,3 +1,4 @@
+/*
 /// Should be used to run a specific `Game`.
 ///
 /// `Runner` is an `actor` that capable of managing the gameplay loop.
@@ -156,3 +157,4 @@ public struct Generate<Game: Setting> {
     randomRatio = { Game.Generate.randomRatio() }
   }
 }
+*/

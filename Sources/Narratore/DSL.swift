@@ -1,3 +1,4 @@
+/*
 /// Build a `SceneStep` out of a series of `Message`s.
 public func tell<Scene: SceneType>(
   _ anchor: Scene.Anchor? = nil,
@@ -237,3 +238,4 @@ extension String {
     .init(id: id, text: self)
   }
 }
+*/

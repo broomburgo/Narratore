@@ -1,3 +1,5 @@
+
+/*
 /// The current state of the narrated story in a game.
 ///
 /// `Script` is part of the `Context`, and thus it can be inspected in each story step.
@@ -149,3 +151,4 @@ public struct Jump<Game: Setting> {
 
 /// A function to update the game `World`.
 public typealias Update<Game: Setting> = (inout Game.World) -> Void
+*/

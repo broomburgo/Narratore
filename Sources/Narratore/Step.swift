@@ -1,3 +1,4 @@
+/*
 /// The fundamental building block of a Narratore story.
 ///
 /// A `Step` in Narratore is a flexible concept; it really just is a type wrapping a function with the following properties:
@@ -208,3 +209,4 @@ public struct GetStep<Game: Setting> {
     run(context)
   }
 }
+*/

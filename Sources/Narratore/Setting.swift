@@ -1,3 +1,4 @@
+/*
 /// The basic protocol that describes the main attributes of a `Game`.
 ///
 /// This protocol declares the key associated types that will define the structure of the `Game`. These are the following:
@@ -48,3 +49,4 @@ extension Tagging {
 }
 
 extension Never: Tagging {}
+*/

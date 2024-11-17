@@ -1,3 +1,4 @@
+/*
 /// The main mechanism with which a game engine can respond to the game loop.
 ///
 /// A `Handler` for a game will likely be the type where most of the code to run the game is located.
@@ -189,3 +190,4 @@ extension Handling: Handler {
     _handleEvent(event)
   }
 }
+*/
