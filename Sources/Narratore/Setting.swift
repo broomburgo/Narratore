@@ -1,7 +1,7 @@
-/*
 /// The basic protocol that describes the main attributes of a `Game`.
 ///
-/// This protocol declares the key associated types that will define the structure of the `Game`. These are the following:
+/// This protocol declares the key associated types that will define the structure of the `Game`.
+/// These are the following:
 /// - `Generate`: used to provide generating functions for values;
 /// - `Message`: used to define the messages through which the story is narrated;
 /// - `Tag`: additional metadata that can be associated to the steps of the story;
@@ -21,11 +21,13 @@ public protocol Generating {
 
 /// Represents the requirements for a game `Message`.
 ///
-/// A `Message` in Narratore must declare an `ID` type, but each message instance is not actually required to have an id, thus the `id: ID?` property is optional.
+/// A `Message` in Narratore must declare an `ID` type, but each message instance is not actually required
+/// to have an id, thus the `id: ID?` property is optional.
 ///
-/// Additionally, a message must be constructible with a text `String`, a feature used in the DSL functions, and must have a simple, human-readable `description`, that defaults to the `text` property.
-public protocol Messaging: Codable & CustomStringConvertible {
-  associatedtype ID: Hashable & Codable
+/// Additionally, a message must be constructible with a text `String`, a feature used in the DSL functions,
+/// and must have a simple, human-readable `description`, that defaults to the `text` property.
+public protocol Messaging: Codable, CustomStringConvertible {
+  associatedtype ID: Hashable, Codable
 
   var id: ID? { get }
   var text: String { get }
@@ -39,8 +41,10 @@ extension Messaging {
 
 /// Represents the requirements for a game `Tag`.
 ///
-/// A tag must but `Hashable` and `Codable`. Additionally, a tag can be "observed", that is, the fact that it was received will be saved in the game `Script` state. To declare that a tag must be observed, implement the `shouldObserve` property and return `true`: the default implementation returns `false`.
-public protocol Tagging: Hashable & Codable {
+/// A tag must be `Hashable` and `Codable`. Additionally, a tag can be "observed", that is, the fact that
+/// it was received will be saved in the game `Script` state. To declare that a tag must be observed,
+/// implement the `shouldObserve` property and return `true`: the default implementation returns `false`.
+public protocol Tagging: Hashable, Codable {
   var shouldObserve: Bool { get }
 }
 
@@ -49,4 +53,3 @@ extension Tagging {
 }
 
 extension Never: Tagging {}
-*/
