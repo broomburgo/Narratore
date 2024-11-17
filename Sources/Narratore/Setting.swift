@@ -26,8 +26,8 @@ public protocol Generating {
 ///
 /// Additionally, a message must be constructible with a text `String`, a feature used in the DSL functions,
 /// and must have a simple, human-readable `description`, that defaults to the `text` property.
-public protocol Messaging: Codable, CustomStringConvertible {
-  associatedtype ID: Hashable, Codable
+public protocol Messaging: Codable, CustomStringConvertible, Sendable {
+  associatedtype ID: Hashable, Codable, Sendable
 
   var id: ID? { get }
   var text: String { get }
@@ -44,7 +44,7 @@ extension Messaging {
 /// A tag must be `Hashable` and `Codable`. Additionally, a tag can be "observed", that is, the fact that
 /// it was received will be saved in the game `Script` state. To declare that a tag must be observed,
 /// implement the `shouldObserve` property and return `true`: the default implementation returns `false`.
-public protocol Tagging: Hashable, Codable {
+public protocol Tagging: Hashable, Codable, Sendable {
   var shouldObserve: Bool { get }
 }
 
