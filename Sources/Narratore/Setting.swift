@@ -10,7 +10,7 @@ public protocol Setting {
   associatedtype Generate: Generating
   associatedtype Message: Messaging
   associatedtype Tag: Tagging
-  associatedtype World: Codable
+  associatedtype World: Codable & Sendable
 }
 
 /// Defines generating functions for values.

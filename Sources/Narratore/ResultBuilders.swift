@@ -1,4 +1,3 @@
-/*
 @resultBuilder
 public enum StepBuilder<Game: Setting> {
   public typealias Component = Step<Game>
@@ -164,4 +163,3 @@ public enum SceneBuilder<Scene: SceneType> {
     components.flatMap { $0 }
   }
 }
-*/

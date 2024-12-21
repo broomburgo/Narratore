@@ -1,4 +1,3 @@
-/*
 /// Should be used to run a specific `Game`.
 ///
 /// `Runner` is an `actor` that capable of managing the gameplay loop.
@@ -107,7 +106,7 @@ public actor Runner<Game: Setting> {
 }
 
 /// Contains the full encodable status of the `Game`, that can be used to restore it when needed.
-public struct Status<Game: Setting>: Encodable {
+public struct Status<Game: Setting>: Encodable, Sendable {
   public internal(set) var info: Info<Game>
   public internal(set) var sceneStack: [SceneStatus<Game>]
 
@@ -129,13 +128,13 @@ public struct Status<Game: Setting>: Encodable {
 extension Status: Decodable where Game: Story {}
 
 /// Contains the public readable info about a `Game`, that is, the `Script` and the state of the `World`.
-public struct Info<Game: Setting>: Codable {
+public struct Info<Game: Setting>: Codable, Sendable {
   public internal(set) var script: Script<Game>
   public internal(set) var world: Game.World
 }
 
 /// The state of a specific scene in the stack.
-public struct SceneStatus<Game: Setting>: Encodable {
+public struct SceneStatus<Game: Setting>: Encodable, Sendable {
   public internal(set) var currentStepIndex: Int
   public internal(set) var section: Section<Game>
 }
@@ -157,4 +156,3 @@ public struct Generate<Game: Setting> {
     randomRatio = { Game.Generate.randomRatio() }
   }
 }
-*/

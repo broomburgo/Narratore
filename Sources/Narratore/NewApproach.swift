@@ -1,1 +1,5 @@
 // new approach
+
+//struct Chunk {
+//  
+//}

@@ -1,4 +1,3 @@
-/*
 /// A concrete `Game` of `Narratore` must implement the `Story` protocol, in order to provide `scenes` when restoring an encoded game.
 public protocol Story: Setting {
   static var scenes: [RawScene<Self>] { get }
@@ -18,9 +17,9 @@ public struct RawScene<Game: Story> {
 /// The `steps` will be implemented using a `@SceneBuilder` result builder.
 ///
 /// A `Scene` can define an `Anchor` type, in order to clearly identify specific steps in it: `Anchor` must be hashable, and it defaults to `Never`, so it's not necessary to manually declare it for all scenes.
-public protocol SceneType: Codable & Hashable {
+public protocol SceneType: Codable, Hashable, Sendable {
   associatedtype Game: Story
-  associatedtype Anchor: Codable & Hashable = NoAnchor
+  associatedtype Anchor: Codable & Hashable & Sendable = NoAnchor
 
   @SceneBuilder<Self>
   var steps: Steps { get }
@@ -29,7 +28,7 @@ public protocol SceneType: Codable & Hashable {
 /// Equivalent to `Never`.
 ///
 /// This is added because `Never` doesn't conform automatically to `Codable`.
-public struct NoAnchor: Codable & Hashable {
+public struct NoAnchor: Codable, Hashable, Sendable {
   private init() {}
 
   public func encode(to _: Encoder) throws {}
@@ -96,7 +95,7 @@ public struct SceneStep<Scene: SceneType> {
 /// - `replaceWith`: replaces the last scene in the stack with a new one; used when moving from one scene to another (or between anchors in the same scene) without affecting the stack of previous scenes;
 /// - `runThrough`: add a scene to the scene stack, that will be removed when it's completed; used when the story needs to temporarily "visit" another scene without affecting the current scene history;
 /// - `transitionTo`: completely replaces the scene stack with a single scene; used when the story shifts from a situation to another, so the scene history must be cleared.
-public struct SceneChange<Game: Setting>: Encodable {
+public struct SceneChange<Game: Setting>: Encodable, Sendable {
   public var action: Action
   public var section: Section<Game>
 
@@ -105,7 +104,7 @@ public struct SceneChange<Game: Setting>: Encodable {
     self.section = section
   }
 
-  public enum Action: Codable {
+  public enum Action: Codable, Sendable {
     case replaceWith
     case runThrough
     case transitionTo
@@ -142,16 +141,16 @@ extension SceneChange {
 /// While the purpose of a `Scene` is to wrap a function that returns the steps for the story, a `Section` is produced by running that function, considering a certain starting `anchor`
 ///
 /// `Section` depends on the specific scene type, represented by the `Scene` generic parameter.
-public struct Section<Game: Setting>: Encodable & Hashable {
+public struct Section<Game: Setting>: Encodable, Hashable, Sendable {
   let steps: [GetStep<Game>]
   let startingIndex: Int
 
-  private let encodeTo: (Encoder) throws -> Void
-  private let hashableSource: AnyHashable
+  private let encodeTo: @Sendable (Encoder) throws -> Void
+  private let hashableSource: any (Hashable & Sendable)
 
   init<Scene: SceneType>(scene: Scene, anchor: Scene.Anchor? = nil) where Scene.Game == Game {
     encodeTo = SectionCodableHelper(scene: scene, anchor: anchor).encode(to:)
-    hashableSource = AnyHashable(scene)
+    hashableSource = scene
 
     let sceneSteps = scene.steps
 
@@ -175,7 +174,7 @@ public struct Section<Game: Setting>: Encodable & Hashable {
   }
 
   public static func == (lhs: Section<Game>, rhs: Section<Game>) -> Bool {
-    lhs.hashableSource == rhs.hashableSource
+    lhs.hashableSource.hashValue == rhs.hashableSource.hashValue
   }
 
   public func encode(to encoder: Encoder) throws {
@@ -223,4 +222,3 @@ private struct SectionCodableHelper<Scene: SceneType>: Codable {
     identifier = Scene.identifier
   }
 }
-*/

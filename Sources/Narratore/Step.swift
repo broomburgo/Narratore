@@ -1,4 +1,3 @@
-/*
 /// The fundamental building block of a Narratore story.
 ///
 /// A `Step` in Narratore is a flexible concept; it really just is a type wrapping a function with the following properties:
@@ -7,10 +6,10 @@
 /// - the output is an instance of `Outcome<Game>`, used to decide what to do after processing a particular step.
 ///
 /// The wrapped function is naturally `async`, in order to properly interact with the `Handler`.
-public struct Step<Game: Setting> {
-  private var _apply: (inout Info<Game>, Handling<Game>) async -> Outcome<Game>
+public struct Step<Game: Setting>: Sendable {
+  private var _apply: @Sendable (inout Info<Game>, Handling<Game>) async -> Outcome<Game>
 
-  public init(apply: @escaping (inout Info<Game>, Handling<Game>) async -> Outcome<Game>) {
+  public init(apply: @escaping @Sendable (inout Info<Game>, Handling<Game>) async -> Outcome<Game>) {
     _apply = apply
   }
 
@@ -198,10 +197,10 @@ extension Step {
 }
 
 /// Wraps a function that allows to create a `Step` conditionally, given the game `Context`.
-public struct GetStep<Game: Setting> {
-  private var run: (Context<Game>) -> Step<Game>
+public struct GetStep<Game: Setting>: Sendable {
+  private var run: @Sendable (Context<Game>) -> Step<Game>
 
-  public init(_ run: @escaping (Context<Game>) -> Step<Game>) {
+  public init(_ run: @escaping @Sendable (Context<Game>) -> Step<Game>) {
     self.run = run
   }
 
@@ -209,4 +208,3 @@ public struct GetStep<Game: Setting> {
     run(context)
   }
 }
-*/

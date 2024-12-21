@@ -1,4 +1,3 @@
-/*
 /// The main mechanism with which a game engine can respond to the game loop.
 ///
 /// A `Handler` for a game will likely be the type where most of the code to run the game is located.
@@ -10,7 +9,7 @@
 /// - `handle(event:)`, used to handle a static event related to the flow of the game;
 ///
 /// `acknowledge(narration:)`, and `make(choice:)` are `async` functions, because they need to wait for a player's reaction, and they must return a `Next` instance, where the engine can tell the `Runner` what to do next after a certain step.
-public protocol Handler {
+public protocol Handler: Sendable {
   associatedtype Game: Setting
 
   func acknowledge(narration: Player<Game>.Narration) async -> Next<Game, Void>
@@ -26,33 +25,33 @@ public enum Player<Game: Setting> {
     public let tags: [Game.Tag]
   }
 
-  public struct Choice {
+  public struct Choice: Sendable {
     public let options: [Option]
     public let tags: [Game.Tag]
   }
 
-  public struct Option {
+  public struct Option: Sendable {
     let id: String
     public let message: Game.Message
     public let tags: [Game.Tag]
   }
 
-  public struct TextRequest {
+  public struct TextRequest: Sendable {
     public let message: Game.Message?
-    public let validate: (String) -> Validation
+    public let validate: @Sendable (String) -> Validation
     public let tags: [Game.Tag]
 
-    public enum Validation {
+    public enum Validation: Sendable {
       case valid(ValidatedText)
       case invalid(Game.Message?)
     }
   }
 
-  public struct ValidatedText {
+  public struct ValidatedText: Sendable {
     public let value: String
   }
 
-  public enum Event {
+  public enum Event: Sendable {
     case gameStarted(Status<Game>)
     case gameEnded
     case errorProduced(Failure<Game>)
@@ -65,7 +64,7 @@ public enum Player<Game: Setting> {
 /// `Next` declares 2 properties:
 /// - `action: Action`, that defines what to do next;
 /// - `update: Change?`, and optional update to the state of the game `World`.
-public struct Next<Game: Setting, Advancement> {
+public struct Next<Game: Setting, Advancement: Sendable>: Sendable {
   public var action: Action
   public var update: Update<Game>?
 
@@ -81,7 +80,7 @@ public struct Next<Game: Setting, Advancement> {
   /// - `advance`: move on with the story, passing along a value of type `Advancement`;
   /// - `replay`: play again the last step, without updating the state of the story;
   /// - `stop`: end the game.
-  public enum Action {
+  public enum Action: Sendable {
     case advance(Advancement)
     case replay
     case stop
@@ -143,17 +142,17 @@ public enum Failure<Game: Setting>: Error {
 }
 
 /// The "protocol witness" version of `Handler`, used internally to type-erase the `Handler` passed to `Runner`.
-public struct Handling<Game: Setting> {
-  private var _acknowledgeNarration: (Player<Game>.Narration) async -> Next<Game, Void>
-  private var _makeChoice: (Player<Game>.Choice) async -> Next<Game, Player<Game>.Option>
-  private var _answerRequest: (Player<Game>.TextRequest) async -> Next<Game, Player<Game>.ValidatedText>
-  private var _handleEvent: (Player<Game>.Event) -> Void
+public struct Handling<Game: Setting>: Sendable {
+  private var _acknowledgeNarration: @Sendable (Player<Game>.Narration) async -> Next<Game, Void>
+  private var _makeChoice: @Sendable (Player<Game>.Choice) async -> Next<Game, Player<Game>.Option>
+  private var _answerRequest: @Sendable (Player<Game>.TextRequest) async -> Next<Game, Player<Game>.ValidatedText>
+  private var _handleEvent: @Sendable (Player<Game>.Event) -> Void
 
   public init(
-    acknowledgeNarration: @escaping (Player<Game>.Narration) async -> Next<Game, Void>,
-    makeChoice: @escaping (Player<Game>.Choice) async -> Next<Game, Player<Game>.Option>,
-    answerRequest: @escaping (Player<Game>.TextRequest) async -> Next<Game, Player<Game>.ValidatedText>,
-    handleEvent: @escaping (Player<Game>.Event) -> Void
+    acknowledgeNarration: @escaping @Sendable (Player<Game>.Narration) async -> Next<Game, Void>,
+    makeChoice: @escaping @Sendable (Player<Game>.Choice) async -> Next<Game, Player<Game>.Option>,
+    answerRequest: @escaping @Sendable (Player<Game>.TextRequest) async -> Next<Game, Player<Game>.ValidatedText>,
+    handleEvent: @escaping @Sendable (Player<Game>.Event) -> Void
   ) {
     _acknowledgeNarration = acknowledgeNarration
     _makeChoice = makeChoice
@@ -190,4 +189,3 @@ extension Handling: Handler {
     _handleEvent(event)
   }
 }
-*/
