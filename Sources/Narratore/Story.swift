@@ -67,9 +67,9 @@ extension SceneType {
 
       return .init(scene: helper.scene, anchor: {
         if let anchor = helper.anchor, anchor is NoAnchor {
-          return nil
+          nil
         } else {
-          return helper.anchor
+          helper.anchor
         }
       }())
     }

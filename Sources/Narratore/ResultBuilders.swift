@@ -73,11 +73,11 @@ public enum MessagesBuilder<Game: Setting> {
   }
 
   public static func buildArray(_ components: [Component]) -> Component {
-    components.flatMap { $0 }
+    components.flatMap(\.self)
   }
 
   public static func buildBlock(_ components: Component...) -> Component {
-    components.flatMap { $0 }
+    components.flatMap(\.self)
   }
 }
 
@@ -106,11 +106,11 @@ public enum OptionsBuilder<Game: Setting> {
   }
 
   public static func buildArray(_ components: [Component]) -> Component {
-    components.flatMap { $0 }
+    components.flatMap(\.self)
   }
 
   public static func buildBlock(_ components: Component...) -> Component {
-    components.flatMap { $0 }
+    components.flatMap(\.self)
   }
 }
 
@@ -156,10 +156,10 @@ public enum SceneBuilder<Scene: SceneType> {
   }
 
   public static func buildArray(_ components: [Component]) -> Component {
-    components.flatMap { $0 }
+    components.flatMap(\.self)
   }
 
   public static func buildBlock(_ components: Component...) -> Component {
-    components.flatMap { $0 }
+    components.flatMap(\.self)
   }
 }

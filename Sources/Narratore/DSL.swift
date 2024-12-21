@@ -94,9 +94,7 @@ public func skip<Scene: SceneType>(_ anchor: Scene.Anchor? = nil) -> SceneStep<S
 }
 
 /// Groups scene steps together.
-public func group<Scene: SceneType>(@SceneBuilder<Scene> _ getSteps: () -> [SceneStep<Scene>])
-  -> [SceneStep<Scene>]
-{
+public func group<Scene: SceneType>(@SceneBuilder<Scene> _ getSteps: () -> [SceneStep<Scene>]) -> [SceneStep<Scene>] {
   getSteps()
 }
 

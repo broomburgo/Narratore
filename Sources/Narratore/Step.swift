@@ -98,10 +98,10 @@ extension Step {
         validate: {
           switch textRequest.validate($0) {
           case .valid(let validated):
-            return .valid(.init(value: validated.text))
+            .valid(.init(value: validated.text))
 
           case .invalid(let message):
-            return .invalid(message)
+            .invalid(message)
           }
         },
         tags: textRequest.tags
@@ -129,14 +129,13 @@ extension Step {
 
   public init(narration: Narration<Game>) {
     self.init { info, handling in
-      let next: Next<Game, Void>
-      if !narration.messages.isEmpty || !narration.tags.isEmpty {
-        next = await handling.acknowledge(narration: .init(
+      let next: Next<Game, Void> = if !narration.messages.isEmpty || !narration.tags.isEmpty {
+        await handling.acknowledge(narration: .init(
           messages: narration.messages,
           tags: narration.tags
         ))
       } else {
-        next = .advance
+        .advance
       }
 
       defer { next.update?(&info.world) }
@@ -159,14 +158,13 @@ extension Step {
 
   public init(jump: Jump<Game>) {
     self.init { info, handling in
-      let next: Next<Game, Void>
-      if !jump.narration.messages.isEmpty || !jump.narration.tags.isEmpty {
-        next = await handling.acknowledge(narration: .init(
+      let next: Next<Game, Void> = if !jump.narration.messages.isEmpty || !jump.narration.tags.isEmpty {
+        await handling.acknowledge(narration: .init(
           messages: jump.narration.messages,
           tags: jump.narration.tags
         ))
       } else {
-        next = .advance
+        .advance
       }
 
       defer { next.update?(&info.world) }
