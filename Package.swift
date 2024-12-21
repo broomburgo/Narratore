@@ -9,15 +9,26 @@ let package = Package(
   products: [
     .library(
       name: "Narratore",
-      targets: ["Narratore"])
+      targets: ["Narratore"]
+    ),
   ],
   dependencies: [],
   targets: [
     .target(
       name: "Narratore",
-      dependencies: []),
+      dependencies: [],
+      swiftSettings: [
+        .enableUpcomingFeature("InternalImportsByDefault"),
+        .enableUpcomingFeature("MemberImportVisibility"),
+      ]
+    ),
     .testTarget(
       name: "NarratoreTests",
-      dependencies: ["Narratore"]),
+      dependencies: ["Narratore"],
+      swiftSettings: [
+        .enableUpcomingFeature("InternalImportsByDefault"),
+        .enableUpcomingFeature("MemberImportVisibility"),
+      ]
+    ),
   ]
 )
