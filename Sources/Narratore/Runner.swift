@@ -142,15 +142,15 @@ public struct SceneStatus<Game: Setting>: Encodable, Sendable {
 extension SceneStatus: Decodable where Game: Story {}
 
 /// Passed to the `GetStep` function, to create a `Step`.
-public struct Context<Game: Setting> {
+public struct Context<Game: Setting>: Sendable {
   public let generate: Generate<Game>
   public let script: Script<Game>
   public let world: Game.World
 }
 
 /// A convenience `struct` that wraps to functionality of `Generate`.
-public struct Generate<Game: Setting> {
-  public let randomRatio: () -> Double
+public struct Generate<Game: Setting>: Sendable {
+  public let randomRatio: @Sendable () -> Double
 
   init() {
     randomRatio = { Game.Generate.randomRatio() }

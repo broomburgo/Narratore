@@ -1,9 +1,8 @@
-/*
 /// Build a `SceneStep` out of a series of `Message`s.
 public func tell<Scene: SceneType>(
   _ anchor: Scene.Anchor? = nil,
   tags: [Scene.Game.Tag] = [],
-  @MessagesBuilder<Scene.Game> getMessages: @escaping (Context<Scene.Game>) -> [Scene.Game.Message],
+  @MessagesBuilder<Scene.Game> getMessages: @escaping @Sendable (Context<Scene.Game>) -> [Scene.Game.Message],
   update: Update<Scene.Game>? = nil
 ) -> SceneStep<Scene> {
   .init(anchor: anchor, getStep: .init {
@@ -20,7 +19,7 @@ public func tell<Scene: SceneType>(
 /// Create a `SceneStep` conditionally, based on the current `Context`.
 public func check<Scene: SceneType>(
   _ anchor: Scene.Anchor? = nil,
-  @StepBuilder<Scene.Game> _ getStep: @escaping (Context<Scene.Game>) -> Step<Scene.Game>
+  @StepBuilder<Scene.Game> _ getStep: @escaping @Sendable (Context<Scene.Game>) -> Step<Scene.Game>
 ) -> SceneStep<Scene> {
   .init(anchor: anchor, getStep: .init(getStep))
 }
@@ -28,7 +27,7 @@ public func check<Scene: SceneType>(
 /// Update the current `World`.
 public func update<Scene: SceneType>(
   _ anchor: Scene.Anchor? = nil,
-  _ update: @escaping (inout Scene.Game.World) -> Void
+  _ update: @escaping @Sendable (inout Scene.Game.World) -> Void
 ) -> SceneStep<Scene> {
   .init(anchor: anchor, getStep: .init { _ in .init(update: update) })
 }
@@ -37,7 +36,7 @@ public func update<Scene: SceneType>(
 public func choose<Scene: SceneType>(
   _ anchor: Scene.Anchor? = nil,
   tags: [Scene.Game.Tag] = [],
-  @OptionsBuilder<Scene.Game> getOptions: @escaping (Context<Scene.Game>) -> [Option<Scene.Game>]
+  @OptionsBuilder<Scene.Game> getOptions: @escaping @Sendable (Context<Scene.Game>) -> [Option<Scene.Game>]
 ) -> SceneStep<Scene> {
   .init(
     anchor: anchor,
@@ -51,9 +50,9 @@ public func choose<Scene: SceneType>(
 public func requestText<Scene: SceneType>(
   _ anchor: Scene.Anchor? = nil,
   tags: [Scene.Game.Tag] = [],
-  @OptionalMessageBuilder<Scene.Game> getMessage: @escaping () -> Scene.Game.Message?,
-  validate: @escaping (String) -> TextRequest<Scene.Game>.Validation,
-  @StepBuilder<Scene.Game> ifValid: @escaping (Context<Scene.Game>, TextRequest<Scene.Game>.Validated) -> Step<Scene.Game>
+  @OptionalMessageBuilder<Scene.Game> getMessage: @escaping @Sendable () -> Scene.Game.Message?,
+  validate: @escaping @Sendable (String) -> TextRequest<Scene.Game>.Validation,
+  @StepBuilder<Scene.Game> ifValid: @escaping @Sendable (Context<Scene.Game>, TextRequest<Scene.Game>.Validated) -> Step<Scene.Game>
 ) -> SceneStep<Scene> {
   .init(
     anchor: anchor,
@@ -70,7 +69,7 @@ public func requestText<Scene: SceneType>(
 
 /// Create a `SceneStep` with a jump `Step` and empty `Narration`.
 public func then<Scene: SceneType>(
-  _ getSceneChange: @escaping () -> SceneChange<Scene.Game>
+  _ getSceneChange: @escaping @Sendable () -> SceneChange<Scene.Game>
 ) -> SceneStep<Scene> {
   .init(
     anchor: nil,
@@ -238,4 +237,3 @@ extension String {
     .init(id: id, text: self)
   }
 }
-*/
