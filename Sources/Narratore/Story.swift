@@ -17,7 +17,7 @@ public struct RawScene<Game: Story>: Sendable {
 /// The `steps` will be implemented using a `@SceneBuilder` result builder.
 ///
 /// A `Scene` can define an `Anchor` type, in order to clearly identify specific steps in it: `Anchor` must be hashable, and it defaults to `Never`, so it's not necessary to manually declare it for all scenes.
-public protocol SceneType: Codable, Identifiable, Sendable where ID: Sendable {
+public protocol SceneType<Game>: Codable, Identifiable, Sendable where ID: Sendable {
   associatedtype Game: Story
   associatedtype Anchor: Codable & Hashable & Sendable = NoAnchor
 
