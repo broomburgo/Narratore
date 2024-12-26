@@ -858,12 +858,10 @@ struct NarratoreTest {
 
   @Test
   func encodeDecode() async throws {
-    nonisolated(unsafe) var values = TestValues()
-
     enum LocalTestGame: Story {
       enum Generate: Generating {
-        nonisolated(unsafe) static var expectedRandomRatio: Double = 0.5
-        nonisolated(unsafe) static var expectedUniqueString: String = "expected"
+        static let expectedRandomRatio: Double = 0.5
+        static let expectedUniqueString: String = "expected"
 
         static func randomRatio() -> Double {
           expectedRandomRatio
@@ -885,7 +883,7 @@ struct NarratoreTest {
         var counter = 0
       }
 
-      nonisolated(unsafe) static var scenes: [RawScene<LocalTestGame>] = [LocalTestScene1.raw, LocalTestScene2.raw]
+      static let scenes: [RawScene<LocalTestGame>] = [LocalTestScene1.raw, LocalTestScene2.raw]
     }
 
     struct LocalTestScene1: SceneType {

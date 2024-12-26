@@ -4,8 +4,8 @@ public protocol Story: Setting {
 }
 
 /// Used when restoring a saved game, in the decoding process.
-public struct RawScene<Game: Story> {
-  var decodeSection: (Decoder) throws -> Section<Game>
+public struct RawScene<Game: Story>: Sendable {
+  var decodeSection: @Sendable (Decoder) throws -> Section<Game>
 }
 
 /// A linear sequence of steps in a Narratore story.
