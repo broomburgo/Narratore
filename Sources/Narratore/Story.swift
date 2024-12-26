@@ -17,25 +17,12 @@ public struct RawScene<Game: Story>: Sendable {
 /// The `steps` will be implemented using a `@SceneBuilder` result builder.
 ///
 /// A `Scene` can define an `Anchor` type, in order to clearly identify specific steps in it: `Anchor` must be hashable, and it defaults to `Never`, so it's not necessary to manually declare it for all scenes.
-public protocol SceneType<Game>: Codable, Identifiable, Sendable where ID: Sendable {
+public protocol SceneType<Game>: Codable, Hashable, Sendable {
   associatedtype Game: Story
-  associatedtype Anchor: Codable & Hashable & Sendable = NoAnchor
+  associatedtype Anchor: Codable & Hashable & Sendable = Never
 
   @SceneBuilder<Self>
   var steps: Steps { get }
-}
-
-/// Equivalent to `Never`.
-///
-/// This is added because `Never` doesn't conform automatically to `Codable`.
-public struct NoAnchor: Codable, Hashable, Sendable {
-  private init() {}
-
-  public func encode(to _: Encoder) throws {}
-
-  public init(from _: Decoder) throws {
-    self.init()
-  }
 }
 
 extension SceneType {
@@ -66,7 +53,7 @@ extension SceneType {
       }
 
       return .init(scene: helper.scene, anchor: {
-        if let anchor = helper.anchor, anchor is NoAnchor {
+        if let anchor = helper.anchor, anchor is Never {
           nil
         } else {
           helper.anchor
@@ -150,7 +137,7 @@ public struct Section<Game: Setting>: Encodable, Hashable, Sendable {
 
   init<Scene: SceneType>(scene: Scene, anchor: Scene.Anchor? = nil) where Scene.Game == Game {
     encodeTo = SectionCodableHelper(scene: scene, anchor: anchor).encode(to:)
-    hashableSource = scene.id
+    hashableSource = scene
 
     let sceneSteps = scene.steps
 

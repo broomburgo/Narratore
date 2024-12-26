@@ -10,11 +10,11 @@ A `Story` in `Narratore` is a protocol that derives from `Setting` (described in
 
 ### `Scene`
 
-A `Scene` is a type conforming to the `protocol SceneType`. Essentially, a `Scene` is an actual piece of the story, it might be associated to a location, an episode, or even a simple character, and it must be `Codable`, and `Identifiable`, because it's associated to some state that will be serialized and deserialized, and each instance of it will be uniquely identified. For example, `SimpleStory` declares the following scene:
+A `Scene` is a type conforming to the `protocol SceneType`. Essentially, a `Scene` is an actual piece of the story, it might be associated to a location, an episode, or even a simple character, and it must be `Codable`, and `Hashable`, because it's associated to some state that will be serialized and deserialized, and each instance of it will be uniquely identified by its hash value, so the steps of a scene can be cached and don't need to be computed each time. For example, `SimpleStory` declares the following scene:
 
 ```swift
 struct Car: SceneType {
-  var id = Game.Generate.uniqueString()
+  private var typeName = "\(Self.self)"
 
   init() {}
   ...
@@ -29,9 +29,7 @@ public extension SceneType {
 }
 ```
 
-In order to easily conform to `Identifiable`, we can simply add a `var id = Game.Generate.uniqueString()` property, so each instance of if will be uniquely identified: this is important because `Narratore` keeps track of the stack of scene instances because it assumes that they are uniquely identified; in case of collisions, `Narratore` will not work properly, so the mere `Hashable` conformance, that doesn't guarantee no collision, would be risky.
-
-Please note that the property is `var` and not `let` because of the `Codable` conformance.
+Note the property `private var typeName = "\(Self.self)"`: this is a safety measure against hash collisions, that can happen more frequently for types without properties. The property must be `var` for the `Codable` requirements.
 
 In some cases, it might be convenient to group multiple scenes into a single namespace, because they're all related, and the namespace could include some convenient declarations that are related to all scenes:
 
