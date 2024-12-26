@@ -3,8 +3,7 @@ import Testing
 import Foundation
 
 struct NarratoreTest {
-  @Test
-  func readRunnerScript() async {
+  @Test func readRunnerScript() async {
     nonisolated(unsafe) var values = TestValues()
 
     values.testScene1_main.updateSteps {
@@ -39,8 +38,7 @@ struct NarratoreTest {
     #expect(story.words == ["a", "b", "c", "d"])
   }
 
-  @Test
-  func readRunnerScriptWithTell() async {
+  @Test func readRunnerScriptWithTell() async {
     nonisolated(unsafe) var values = TestValues()
 
     values.testScene1_main.updateSteps {
@@ -93,8 +91,7 @@ struct NarratoreTest {
     #expect(info.script.words == ["a", "b", "c", "d", "e", "ee", "f", "g"])
   }
 
-  @Test
-  func readRunnerWorld() async {
+  @Test func readRunnerWorld() async {
     nonisolated(unsafe) var values = TestValues()
 
     values.testScene1_main.updateSteps {
@@ -118,8 +115,7 @@ struct NarratoreTest {
     #expect(world.counter == 1)
   }
 
-  @Test
-  func basicHandledEvents() async {
+  @Test func basicHandledEvents() async {
     nonisolated(unsafe) var values = TestValues()
 
     values.testScene1_main.updateSteps {
@@ -165,8 +161,7 @@ struct NarratoreTest {
     #expect(finalStatus!.info.script.narrated == ["1": 1, "2": 1])
   }
 
-  @Test
-  func basicSceneJump() async {
+  @Test func basicSceneJump() async {
     nonisolated(unsafe) var values = TestValues()
 
     values.testScene1_main.updateSteps {
@@ -193,8 +188,7 @@ struct NarratoreTest {
     #expect(story.words == ["a", "b", "c", "d"])
   }
 
-  @Test
-  func basicChoice() async {
+  @Test func basicChoice() async {
     nonisolated(unsafe) var values = TestValues()
 
     values.testScene1_main.updateSteps {
@@ -238,8 +232,7 @@ struct NarratoreTest {
     #expect(story.narrated["c is selected", default: 0] == 0)
   }
 
-  @Test
-  func basicCheck() async {
+  @Test func basicCheck() async {
     nonisolated(unsafe) var values = TestValues()
 
     values.testScene1_main.updateSteps {
@@ -284,8 +277,7 @@ struct NarratoreTest {
     #expect(info.world.counter == 8)
   }
 
-  @Test
-  func forcedUpdate() async {
+  @Test func forcedUpdate() async {
     nonisolated(unsafe) var values = TestValues()
 
     values.testScene1_main.updateSteps {
@@ -323,8 +315,7 @@ struct NarratoreTest {
     #expect(info.world.counter == 7)
   }
 
-  @Test
-  func returnToChoiceWithUpdate() async {
+  @Test func returnToChoiceWithUpdate() async {
     nonisolated(unsafe) var values = TestValues()
 
     values.testScene1_main.updateSteps {
@@ -406,8 +397,7 @@ struct NarratoreTest {
     ])
   }
 
-  @Test
-  func returnToChoiceWithUpdateAndSimpleStep() async {
+  @Test func returnToChoiceWithUpdateAndSimpleStep() async {
     nonisolated(unsafe) var values = TestValues()
 
     values.testScene2_main.updateSteps {
@@ -485,8 +475,7 @@ struct NarratoreTest {
     ])
   }
 
-  @Test
-  func runThrough() async {
+  @Test func runThrough() async {
     nonisolated(unsafe) var values = TestValues()
 
     values.testScene1_main.updateSteps {
@@ -560,8 +549,7 @@ struct NarratoreTest {
     ])
   }
 
-  @Test
-  func runThroughAndReplaceWith() async {
+  @Test func runThroughAndReplaceWith() async {
     nonisolated(unsafe) var values = TestValues()
 
     values.testScene1_main.updateSteps {
@@ -617,8 +605,7 @@ struct NarratoreTest {
     ])
   }
 
-  @Test
-  func runThroughAndTransitionTo() async {
+  @Test func runThroughAndTransitionTo() async {
     nonisolated(unsafe) var values = TestValues()
 
     values.testScene1_main.updateSteps {
@@ -672,8 +659,7 @@ struct NarratoreTest {
     ])
   }
 
-  @Test
-  func replayNotAffectScript() async {
+  @Test func replayNotAffectScript() async {
     nonisolated(unsafe) var values = TestValues()
 
     values.testScene1_main.updateSteps {
@@ -704,8 +690,7 @@ struct NarratoreTest {
     #expect(info.script.words == ["a", "b", "c"])
   }
 
-  @Test
-  func replayWithChange() async {
+  @Test func replayWithChange() async {
     nonisolated(unsafe) var values = TestValues()
 
     values.testScene1_main.updateSteps {
@@ -741,8 +726,7 @@ struct NarratoreTest {
     #expect(info.script.words == ["a", "c", "d"])
   }
 
-  @Test
-  func stopNotAffectScript() async {
+  @Test func stopNotAffectScript() async {
     nonisolated(unsafe) var values = TestValues()
 
     values.testScene1_main.updateSteps {
@@ -770,8 +754,7 @@ struct NarratoreTest {
     #expect(info.script.words == ["a"])
   }
 
-  @Test
-  func sceneChangeShorthand() async {
+  @Test func sceneChangeShorthand() async {
     nonisolated(unsafe) var values = TestValues()
 
     values.testScene1_main.updateSteps {
@@ -819,8 +802,7 @@ struct NarratoreTest {
     ])
   }
 
-  @Test
-  func observeTags() async {
+  @Test func observeTags() async {
     nonisolated(unsafe) var values = TestValues()
 
     values.testScene1_main.updateSteps {
@@ -856,12 +838,11 @@ struct NarratoreTest {
     #expect(info.script.observed["observe-choice", default: 0] == 1)
   }
 
-  @Test
-  func encodeDecode() async throws {
+  @Test func encodeDecode() async throws {
     enum LocalTestGame: Story {
       enum Generate: Generating {
-        static let expectedRandomRatio: Double = 0.5
-        static let expectedUniqueString: String = "expected"
+        nonisolated(unsafe) static var expectedRandomRatio: Double = 0.5
+        nonisolated(unsafe) static var expectedUniqueString: String = "expected"
 
         static func randomRatio() -> Double {
           expectedRandomRatio
@@ -889,6 +870,8 @@ struct NarratoreTest {
     struct LocalTestScene1: SceneType {
       typealias Game = LocalTestGame
 
+      var id = UUID().uuidString
+
       var steps: [SceneStep<Self>] {
         "a"
         "b"
@@ -901,6 +884,8 @@ struct NarratoreTest {
 
     struct LocalTestScene2: SceneType {
       typealias Game = LocalTestGame
+
+      var id = UUID().uuidString
 
       var steps: [SceneStep<Self>] {
         "1"
@@ -963,8 +948,7 @@ struct NarratoreTest {
     #expect(narratedByRunner2 == ["2", "3", "d", "e"])
   }
 
-  @Test
-  func verifyRequestText() async {
+  @Test func verifyRequestText() async {
     nonisolated(unsafe) var values = TestValues()
 
     nonisolated(unsafe) var receivedText: String?

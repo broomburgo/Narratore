@@ -10,7 +10,7 @@ A `Story` in `Narratore` is a protocol that derives from `Setting` (described in
 
 ### `Scene`
 
-A `Scene` is a type conforming to the `protocol SceneType`. Essentially, a `Scene` is an actual piece of the story, it might be associated to a location, an episode, or even a simple character, and it must be `Codable` and `Hashable` because it's associated to some state that will be serialized and deserialized, and will be uniquely identified. For example, `SimpleStory` declares the following scene:
+A `Scene` is a type conforming to the `protocol SceneType`. Essentially, a `Scene` is an actual piece of the story, it might be associated to a location, an episode, or even a simple character, and it must be `Codable` and `Identifiable` because it's associated to some state that will be serialized and deserialized and each instance of it will be uniquely identified. For example, `SimpleStory` declares the following scene:
 
 ```swift
 public struct Car: SceneType {

@@ -1,4 +1,5 @@
 public import Narratore
+import Foundation
 
 extension String: Tagging {
   public var shouldObserve: Bool {
@@ -39,6 +40,8 @@ typealias TestPlayer = Player<TestGame>
 struct TestScene1: SceneType {
   typealias Game = TestGame
   typealias Anchor = String
+
+  var id = UUID().uuidString
 
   var title: String
 
@@ -83,6 +86,8 @@ struct TestScene1: SceneType {
 struct TestScene2: SceneType {
   typealias Game = TestGame
   typealias Anchor = String
+
+  var id = UUID().uuidString
 
   var title: String
 
