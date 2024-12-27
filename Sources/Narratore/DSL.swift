@@ -176,14 +176,14 @@ extension Narration {
 
 // MARK: - Narration
 
-/// Build a `narration` step out of a series of `Message`s.
-public func tell<Game: Setting>(
-  tags: [Game.Tag] = [],
-  @MessagesBuilder<Game> getMessages: () -> [Game.Message],
-  update: Update<Game>? = nil
-) -> Narration<Game> {
-  .init(messages: getMessages(), tags: tags, update: update)
-}
+///// Build a `narration` step out of a series of `Message`s.
+//public func tell<Game: Setting>(
+//  tags: [Game.Tag] = [],
+//  @MessagesBuilder<Game> getMessages: () -> [Game.Message],
+//  update: Update<Game>? = nil
+//) -> Narration<Game> {
+//  .init(messages: getMessages(), tags: tags, update: update)
+//}
 
 extension String {
   /// Create a `Narration` with the root `String` as message text.
