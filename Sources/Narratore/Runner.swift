@@ -56,7 +56,7 @@ public actor Runner<Game: Setting> {
     }
 
     let getStep = getSteps[sceneStatus.currentStepIndex]
-    let step = getStep(context: .init(
+    let step = await getStep(context: .init(
       generate: .init(),
       script: status.info.script,
       world: status.info.world

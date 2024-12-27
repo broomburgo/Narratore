@@ -115,7 +115,7 @@ public struct Option<Game: Setting>: Sendable {
 public struct TextRequest<Game: Setting>: Sendable {
   public let message: Game.Message?
   public let validate: @Sendable (String) -> Validation
-  public let getStep: @Sendable (Validated) -> Step<Game>
+  public let getStep: @Sendable (Validated) async -> Step<Game>
   public let tags: [Game.Tag]
 
   public enum Validation: Sendable {

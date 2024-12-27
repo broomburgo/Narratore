@@ -113,7 +113,7 @@ extension Step {
         info.script.append(narration: .init(messages: [.init(id: nil, text: validatedText.value)], tags: [], update: nil))
         next.update?(&info.world)
 
-        let step = textRequest.getStep(.init(text: validatedText.value))
+        let step = await textRequest.getStep(.init(text: validatedText.value))
         return await step.apply(info: &info, handling: handling)
 
       case .replay:
@@ -196,13 +196,13 @@ extension Step {
 
 /// Wraps a function that allows to create a `Step` conditionally, given the game `Context`.
 public struct GetStep<Game: Setting>: Sendable {
-  private var run: @Sendable (Context<Game>) -> Step<Game>
+  private var run: @Sendable (Context<Game>) async -> Step<Game>
 
-  public init(_ run: @escaping @Sendable (Context<Game>) -> Step<Game>) {
+  public init(_ run: @escaping @Sendable (Context<Game>) async -> Step<Game>) {
     self.run = run
   }
 
-  public func callAsFunction(context: Context<Game>) -> Step<Game> {
-    run(context)
+  public func callAsFunction(context: Context<Game>) async -> Step<Game> {
+    await run(context)
   }
 }

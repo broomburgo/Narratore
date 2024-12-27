@@ -8,24 +8,27 @@ public enum DO<Scene: SceneType> {
   public static func tell(
     anchor: Scene.Anchor? = nil,
     tags: [Scene.Game.Tag] = [],
-    @MessagesBuilder<Scene.Game> getMessages: @escaping @Sendable (Context<Scene.Game>) -> [Scene.Game.Message],
+    @MessagesBuilder<Scene.Game> getMessages: @escaping @Sendable (Context<Scene.Game>) async -> [Scene.Game.Message],
     update: Update<Scene.Game>? = nil
   ) -> SceneStep<Scene> {
-    .init(anchor: anchor, getStep: .init {
-      let messages = getMessages($0)
+    .init(
+      anchor: anchor,
+      getStep: .init {
+        let messages = await getMessages($0)
 
-      return .tell(tags: tags, getMessages: {
-        for message in messages {
-          message
-        }
-      }, update: update)
-    })
+        return .tell(tags: tags, getMessages: {
+          for message in messages {
+            message
+          }
+        }, update: update)
+      }
+    )
   }
 
   /// Create a `SceneStep` conditionally, based on the current `Context`.
   public static func check(
     anchor: Scene.Anchor? = nil,
-    _ getStep: @escaping @Sendable (Context<Scene.Game>) -> Step<Scene.Game>
+    _ getStep: @escaping @Sendable (Context<Scene.Game>) async -> Step<Scene.Game>
   ) -> SceneStep<Scene> {
     .init(anchor: anchor, getStep: .init(getStep))
   }
@@ -42,12 +45,12 @@ public enum DO<Scene: SceneType> {
   public static func choose(
     anchor: Scene.Anchor? = nil,
     tags: [Scene.Game.Tag] = [],
-    @OptionsBuilder<Scene.Game> getOptions: @escaping @Sendable (Context<Scene.Game>) -> [Option<Scene.Game>]
+    @OptionsBuilder<Scene.Game> getOptions: @escaping @Sendable (Context<Scene.Game>) async -> [Option<Scene.Game>]
   ) -> SceneStep<Scene> {
     .init(
       anchor: anchor,
       getStep: .init {
-        .init(choice: .init(options: getOptions($0), tags: tags))
+        await .init(choice: .init(options: getOptions($0), tags: tags))
       }
     )
   }
@@ -58,17 +61,17 @@ public enum DO<Scene: SceneType> {
     tags: [Scene.Game.Tag] = [],
     @OptionalMessageBuilder<Scene.Game> getMessage: @escaping @Sendable () -> Scene.Game.Message?,
     validate: @escaping @Sendable (String) -> TextRequest<Scene.Game>.Validation,
-    ifValid: @escaping @Sendable (Context<Scene.Game>, TextRequest<Scene.Game>.Validated) -> Step<Scene.Game>
+    ifValid: @escaping @Sendable (Context<Scene.Game>, TextRequest<Scene.Game>.Validated) async -> Step<Scene.Game>
   ) -> SceneStep<Scene> {
     .init(
       anchor: anchor,
       getStep: .init { context in
-          .init(textRequest: .init(
-            message: getMessage(),
-            validate: validate,
-            getStep: { ifValid(context, $0) },
-            tags: tags
-          ))
+        .init(textRequest: .init(
+          message: getMessage(),
+          validate: validate,
+          getStep: { await ifValid(context, $0) },
+          tags: tags
+        ))
       }
     )
   }
@@ -80,16 +83,16 @@ public enum DO<Scene: SceneType> {
     .init(
       anchor: nil,
       getStep: .init { _ in
-          .init(
-            jump: .init(
-              narration: .init(
-                messages: [],
-                tags: [],
-                update: nil
-              ),
-              sceneChange: getSceneChange()
-            )
+        .init(
+          jump: .init(
+            narration: .init(
+              messages: [],
+              tags: [],
+              update: nil
+            ),
+            sceneChange: getSceneChange()
           )
+        )
       }
     )
   }
