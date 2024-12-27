@@ -40,7 +40,7 @@ enum Bookshop {
   }
   ...
   struct Main: SceneType {
-    enum Anchor: Codable & Hashable {
+    enum Anchor: Codable, Hashable {
       case askQuestions
     }
 
@@ -60,14 +60,14 @@ A `Scene` provides a __linear list of steps__, whose actual content depends on t
 ```swift
 public protocol SceneType: Codable, Hashable, Sendable {
   associatedtype Game: Story
-  associatedtype Anchor: Codable & Hashable & Sendable = Never
+  associatedtype Anchor: Codable, Hashable, Sendable = Never
 
   @SceneBuilder<Self>
   var steps: Steps { get }
 }
 ```
 
-A `Scene` is associated to a `Game: Story` and an `Anchor: Codable & Hashable & Sendable` that defaults to `Never` (it's essentially "optional" then, because if it's not defined for a `Scene`, it will be assumed to be non-existent). Also, `Scene` must define a `var steps: Steps { get }`, that returns a list of `SceneStep` and depends on the state of the scene (`Steps` is a `typealias`).
+A `Scene` is associated to a `Game: Story` and an `Anchor: Codable, Hashable, Sendable` that defaults to `Never` (it's essentially "optional" then, because if it's not defined for a `Scene`, it will be assumed to be non-existent). Also, `Scene` must define a `var steps: Steps { get }`, that returns a list of `SceneStep` and depends on the state of the scene (`Steps` is a `typealias`).
 
 In theory, one could extend their `World` type with the `SceneType` protocol, and have all scenes in the game depend on the state of the `World` itself: while this could be a good idea for a very simple and short story, it's probably better to still split the story in several `Scene`s, that could then be referenced from the `World` if needed (being `Codable`, they can be put in `World` properties).
 

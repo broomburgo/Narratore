@@ -52,7 +52,7 @@ public enum SimpleSetting: Setting {
 A message can be as simple as a `String`, but thanks to the fact that in `Narratore` a `Message` is a generic type, it's possible to obtain more sophisticated results, for example attaching the message to a character, or handling story localization in a convenient way.
 
 The `Message` associated type is expected to conform to the `Messaging` protocol, that declares some requirements:
-- it must be `Codable & CustomStringConvertible`;
+- it must be `Codable` and `CustomStringConvertible`;
 - it must define an `ID` associated type;
 - it must have 2 properties, `text: String` and `id: ID?`;
 - it must be constructible with a specific initializer.
@@ -73,7 +73,7 @@ public enum SimpleSetting: Setting {
       self.text = text
     }
     
-    public struct ID: Hashable & Codable & ExpressibleByStringLiteral & CustomStringConvertible {
+    public struct ID: Hashable, Codable, ExpressibleByStringLiteral, CustomStringConvertible {
       public var description: String
       
       public init(stringLiteral value: String) {
@@ -98,7 +98,7 @@ Let's add a simple `Tag` definition to `SimpleSetting`:
 ```swift
 public enum SimpleSetting: Setting {
   ...
-  public struct Tag: Tagging & CustomStringConvertible {
+  public struct Tag: Tagging, CustomStringConvertible {
     public var value: String
     public var shouldObserve: Bool
     
@@ -134,14 +134,14 @@ public enum SimpleSetting: Setting {
     
     public init() {}
 
-    public struct Key: ExpressibleByStringLiteral & CustomStringConvertible & Codable & Equatable & Hashable {
+    public struct Key: ExpressibleByStringLiteral, CustomStringConvertible, Codable, Equatable, Hashable {
       public var description: String
       public init(stringLiteral value: String) {
         description = value
       }
     }
 
-    public struct Value: ExpressibleByStringLiteral & CustomStringConvertible & Codable & Equatable {
+    public struct Value: ExpressibleByStringLiteral, CustomStringConvertible, Codable, Equatable {
       public var description: String
       public init(stringLiteral value: String) {
         description = value

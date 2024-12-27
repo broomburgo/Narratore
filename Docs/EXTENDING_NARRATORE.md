@@ -35,7 +35,7 @@ A good starting point is to declare in a protocol all the extra type parameters 
 ```swift
 public protocol SettingExtra {
   associatedtype CustomWorld: Codable
-  associatedtype InventoryItem: Codable & Hashable
+  associatedtype InventoryItem: Codable, Hashable
 }
 ```
 
@@ -104,7 +104,7 @@ When using this `AdvancedSetting` in practice, we'll define a concrete `Advanced
 public enum AdvancedExtra: SettingExtra {
   public typealias CustomWorld = SimpleSetting.World
 
-  public enum InventoryItem: Codable & Hashable {
+  public enum InventoryItem: Codable, Hashable {
     case apple
     case cloak
     case hat
@@ -128,7 +128,7 @@ We can start again by collecting the type and value requirements in a protocol:
 
 ```swift
 public protocol Localizing {
-  associatedtype Language: Hashable & Codable
+  associatedtype Language: Hashable, Codable
   static var base: Language { get }
   static var current: Language { get set }
 }
@@ -245,7 +245,7 @@ Finally, here's a very basic example of a concrete `AdvancedStory`, that uses th
 public enum AdvancedExtra: SettingExtra {
   public typealias CustomWorld = SimpleSetting.World
 
-  public enum InventoryItem: Codable & Hashable {
+  public enum InventoryItem: Codable, Hashable {
     case apple
     case cloak
     case hat
@@ -253,7 +253,7 @@ public enum AdvancedExtra: SettingExtra {
 }
 
 public enum AdvancedLocalization: Localizing {
-  public enum Language: Hashable & Codable {
+  public enum Language: Hashable, Codable {
     case english
     case italian
   }
