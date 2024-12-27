@@ -14,9 +14,7 @@ A `Scene` is a type conforming to the `protocol SceneType`. Essentially, a `Scen
 
 ```swift
 struct Car: SceneType {
-  private var typeName = "\(Self.self)"
-
-  init() {}
+  private var typeName = Self.identifier
   ...
 }
 ```
@@ -24,29 +22,29 @@ struct Car: SceneType {
 Normally, `SceneType` would require a `typealias Game = ...` declaration, but within a single `Story` is simply possible to automatically add it to all `Scene`s:
 
 ```swift
-public extension SceneType {
+extension SceneType {
   typealias Game = SimpleStory
 }
 ```
 
-Note the property `private var typeName = "\(Self.self)"`: this is a safety measure against hash collisions, that can happen more frequently for types without properties. The property must be `var` for the `Codable` requirements.
+Note the property `private var typeName = Self.identifier`: this is a safety measure against hash collisions, that can happen more frequently for types without properties. The property must be `var` for the `Codable` requirements.
 
 In some cases, it might be convenient to group multiple scenes into a single namespace, because they're all related, and the namespace could include some convenient declarations that are related to all scenes:
 
 ```swift
-public enum Bookshop {
+enum Bookshop {
   ...
-  public enum Status: Codable {
+  enum Status: Codable {
     case regular
     case trashed
   }
   ...
-  public struct Main: SceneType {
-    public enum Anchor: Codable & Hashable {
+  struct Main: SceneType {
+    enum Anchor: Codable & Hashable {
       case askQuestions
     }
 
-    public var status: Status = .regular
+    var status: Status = .regular
     ...
   }
   ...
@@ -60,16 +58,16 @@ The `Scene` is the fundamental building block of a `Narratore` story: it's its "
 A `Scene` provides a __linear list of steps__, whose actual content depends on the current state of the `Scene`. This can be easily seen by just looking at the definition of the `Scene` protocol:
 
 ```swift
-public protocol SceneType: Codable & Hashable {
+public protocol SceneType: Codable, Hashable, Sendable {
   associatedtype Game: Story
-  associatedtype Anchor: Codable & Hashable = NoAnchor
+  associatedtype Anchor: Codable & Hashable & Sendable = Never
 
   @SceneBuilder<Self>
   var steps: Steps { get }
 }
 ```
 
-A `Scene` is associated to a `Game: Story` and an `Anchor: Codable & Hashable` that defaults to `NoAnchor` (it's essentially "optional" then, because if it's not defined for a `Scene`, it will be assumed as non-existent). Also, `Scene` must define a `var steps: Steps { get }`, that returns a list of `SceneStep` and depends on the state of the scene (`Steps` is a `typealias`).
+A `Scene` is associated to a `Game: Story` and an `Anchor: Codable & Hashable & Sendable` that defaults to `Never` (it's essentially "optional" then, because if it's not defined for a `Scene`, it will be assumed to be non-existent). Also, `Scene` must define a `var steps: Steps { get }`, that returns a list of `SceneStep` and depends on the state of the scene (`Steps` is a `typealias`).
 
 In theory, one could extend their `World` type with the `SceneType` protocol, and have all scenes in the game depend on the state of the `World` itself: while this could be a good idea for a very simple and short story, it's probably better to still split the story in several `Scene`s, that could then be referenced from the `World` if needed (being `Codable`, they can be put in `World` properties).
 
@@ -78,43 +76,44 @@ In theory, one could extend their `World` type with the `SceneType` protocol, an
 The key requirement for a `Scene` is to provide a computed property that returns an `Array<SceneStep>`, and the types involved are pretty simple, so let's describe them in some detail:
 
 ```swift
-public struct SceneStep<Scene: SceneType> {
+public struct SceneStep<Scene: SceneType>: Sendable {
   public init(anchor: Scene.Anchor? = nil,  getStep: GetStep<Scene.Game>) {
     ...
   }
   ...
 }
 
-public struct GetStep<Game: Setting> {
-  public init(_ run: @escaping (Context<Game>) -> Step<Game>) {
+public struct GetStep<Game: Setting>: Sendable {
+  public init(_ run: @escaping @Sendable (Context<Game>) -> Step<Game>) {
     ...
   }
   ...
 }
 
-public struct Context<Game: Setting> {
+public struct Context<Game: Setting>: Sendable {
   public let generate: Generate<Game>
   public let script: Script<Game>
   public let world: Game.World
 }
 
-public struct Step<Game: Setting> {
-  public init(apply: @escaping (inout Info<Game>, Handling<Game>) async -> Outcome<Game>) {
+public struct Step<Game: Setting>: Sendable {
+  public init(apply: @escaping @Sendable (inout Info<Game>, Handling<Game>) async -> Outcome<Game>) {
     ...
   }
   ...
 }
 
-public struct Info<Game: Setting>: Codable {
+public struct Info<Game: Setting>: Codable, Sendable {
   public internal(set) var script: Script<Game>
   public internal(set) var world: Game.World
 }
 
-public struct Handling<Game: Setting> {
-  public init(
-    acknowledgeNarration: @escaping (Player<Game>.Narration) async -> Next<Game,Void>,
-    makeChoice: @escaping (Player<Game>.Choice) async -> Next<Game, Player<Game>.Option>,
-    handleEvent: @escaping (Player<Game>.Event) -> Void
+public struct Handling<Game: Setting>: Sendable {
+    public init(
+    acknowledgeNarration: @escaping @Sendable (Player<Game>.Narration) async -> Next<Game, Void>,
+    makeChoice: @escaping @Sendable (Player<Game>.Choice) async -> Next<Game, Player<Game>.Option>,
+    answerRequest: @escaping @Sendable (Player<Game>.TextRequest) async -> Next<Game, Player<Game>.ValidatedText>,
+    handleEvent: @escaping @Sendable (Player<Game>.Event) -> Void
   ) {
     ...
   }
@@ -140,7 +139,7 @@ The next section will describe the various components of this DSL.
 It's important to understand how narratore represents the state of the story. The current state of the story, as mentioned above, is represented via the `Context` type
 
 ```swift
-public struct Context<Game: Setting> {
+public struct Context<Game: Setting>: Sendable {
   public let generate: Generate<Game>
   public let script: Script<Game>
   public let world: Game.World
@@ -176,10 +175,10 @@ public static func buildExpression(_ expression: String) -> Component {
 Thus, a `SceneStep` can be simply build from a `String`. You can take a look at the beginning of the `Main` scene of `Car` scene:
 
 ```swift
-public struct Car: SceneType {
-  public init() {}
+struct Car: SceneType {
+  private var typeName = Self.identifier
 
-  public var steps: Steps {
+  var steps: Steps {
     "You wake up from an unusual dream"
     "You were under the sea, walking on the ground as if there was no pull to the surface, nor any resistance from the water itself"
     "But you were definitely under the sea, fishes and everything, and the light of the sun reflected on the shimmering water surface, creating a dream-like movement"
@@ -192,9 +191,9 @@ public struct Car: SceneType {
  Simple string literals will be turned into `SceneStep` by the `SceneBuilder`. Now consider instead the beginning scene `Bookshop.Main`:
  
 ```swift
-public struct Main: SceneType {
+struct Main: SceneType {
   ...
-  public var steps: Steps {
+  var steps: Steps {
     switch status {
     case .regular:
       "The bookshop is barely lit, with some fake candles on the top shelves projecting a faint, shimmering light"
@@ -217,7 +216,7 @@ Finally, you can usually add some properties to the message or narration step re
 
 Internally, a `Step` can be constructed (among other things) from a `Narration`, which is type that holds an array of `Game.Message`, the basic way in which `Narratore` communicates some message to the player. This means that __a single step__ can be actually constituted from multiple messages, and the list or content of the messages can depend on the `Context` (that is, the state of the story).
 
-The fact that a step can contain multiple message means that the story will be actually considered "advanced by a step" __only if__ all messages are acknowledged by the player: this also applies to state restoration, that is, if a game is restored from a `Status` value (check [Running the game](RUNNING_THE_GAME.md) for more details). This could actually be convenient, though: grouping messages that are thematically connected (like in a conversation or a description) can be useful because we might want to restore the state of the game a the beginning of that portion of story, in order to give the player the required context.
+The fact that a step can contain multiple message means that the story will be actually considered "advanced by a step" __only if__ all messages are acknowledged by the player: this also applies to state restoration, that is, if a game is restored from a `Status` value (check [Running the game](RUNNING_THE_GAME.md) for more details). This can be convenient: grouping messages that are thematically connected (like in a conversation or a description) can be useful because we might want to restore the state of the game a the beginning of that portion of story, in order to give the player the required context.
 
 If you want to group some messages, and/or make them depend on the state of the story, you can use the `tell` function. For example, consider this portion of `Bookshop.Main`:
 

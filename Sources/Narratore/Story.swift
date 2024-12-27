@@ -66,7 +66,7 @@ extension SceneType {
 /// The `getSteps(for:)` function in a scene must return a linear sequence of `SceneStep`.
 ///
 /// A `SceneStep` is really just a pair of an optional `Anchor`, and an instance of `GetStep`, which wraps a function that will eventually provide a story `Step`.
-public struct SceneStep<Scene: SceneType> {
+public struct SceneStep<Scene: SceneType>: Sendable {
   public var anchor: Scene.Anchor?
   public var getStep: GetStep<Scene.Game>
 
@@ -135,7 +135,7 @@ public struct Section<Game: Setting>: Encodable, Hashable, Sendable {
   private let encodeTo: @Sendable (Encoder) throws -> Void
   private let hashableSource: any (Hashable & Sendable)
 
-  init<Scene: SceneType>(scene: Scene, anchor: Scene.Anchor? = nil) where Scene.Game == Game {
+  init<Scene: SceneType<Game>>(scene: Scene, anchor: Scene.Anchor? = nil) {
     encodeTo = SectionCodableHelper(scene: scene, anchor: anchor).encode(to:)
     hashableSource = scene
 
