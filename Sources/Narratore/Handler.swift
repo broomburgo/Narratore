@@ -19,8 +19,8 @@ public protocol Handler: Sendable {
 }
 
 /// The namespace for player-facing information and choices.
-public enum Player<Game: Setting> {
-  public struct Narration {
+public enum Player<Game: Setting>: Sendable {
+  public struct Narration: Sendable {
     public let messages: [Game.Message]
     public let tags: [Game.Tag]
   }

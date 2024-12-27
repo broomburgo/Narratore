@@ -1,32 +1,3 @@
-//@resultBuilder
-//public enum StepBuilder<Game: Setting> {
-//  public typealias Component = Step<Game>
-//
-//  public static func buildExpression(_ expression: String) -> Component {
-//    .init(narration: .init(messages: [.init(id: nil, text: expression)], tags: [], update: nil))
-//  }
-//
-//  public static func buildExpression(_ expression: Component) -> Component {
-//    expression
-//  }
-//
-//  public static func buildOptional(_ component: Component?) -> Component {
-//    component ?? .skip
-//  }
-//
-//  public static func buildEither(first component: Component) -> Component {
-//    component
-//  }
-//
-//  public static func buildEither(second component: Component) -> Component {
-//    component
-//  }
-//
-//  public static func buildBlock(_ component: Component) -> Component {
-//    component
-//  }
-//}
-
 @resultBuilder
 public enum OptionalMessageBuilder<Game: Setting> {
   public typealias Component = Game.Message?

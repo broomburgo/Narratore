@@ -118,12 +118,12 @@ public struct TextRequest<Game: Setting>: Sendable {
   public let getStep: @Sendable (Validated) -> Step<Game>
   public let tags: [Game.Tag]
 
-  public enum Validation {
+  public enum Validation: Sendable {
     case valid(Validated)
     case invalid(Game.Message?)
   }
 
-  public struct Validated {
+  public struct Validated: Sendable {
     public let text: String
 
     public init(text: String) {

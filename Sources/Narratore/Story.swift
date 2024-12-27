@@ -19,7 +19,7 @@ public struct RawScene<Game: Story>: Sendable {
 /// A `Scene` can define an `Anchor` type, in order to clearly identify specific steps in it: `Anchor` must be hashable, and it defaults to `Never`, so it's not necessary to manually declare it for all scenes.
 public protocol SceneType<Game>: Codable, Hashable, Sendable {
   associatedtype Game: Story
-  associatedtype Anchor: Codable & Hashable & Sendable = Never
+  associatedtype Anchor: Codable, Hashable, Sendable = Never
 
   @SceneBuilder<Self>
   var steps: Steps { get }
