@@ -1,6 +1,6 @@
+import Foundation
 import Narratore
 import Testing
-import Foundation
 
 struct NarratoreTest {
   @Test func readRunnerScript() async {
@@ -9,13 +9,13 @@ struct NarratoreTest {
     values.testScene1_main.updateSteps {
       "a"
 
-      check { _ in
+      DO.check { _ in
         .init(narration: .init(messages: [], tags: [], update: nil))
       }
 
       "b".with(id: "1")
 
-      check { _ in
+      DO.check { _ in
         .init(narration: .init(messages: [], tags: [], update: nil))
       }
 
@@ -44,8 +44,8 @@ struct NarratoreTest {
     values.testScene1_main.updateSteps {
       "a"
 
-      check { context in
-        tell {
+      DO.check { context in
+        .tell {
           "b".with(id: "1")
 
           if context.world.counter == 1 {
@@ -60,8 +60,8 @@ struct NarratoreTest {
 
       "d"
 
-      check { context in
-        tell(tags: ["a"]) {
+      DO.check { context in
+        .tell(tags: ["a"]) {
           "e".with(id: "2")
 
           if context.world.counter == 1 {
@@ -96,7 +96,7 @@ struct NarratoreTest {
 
     values.testScene1_main.updateSteps {
       "a"
-      update {
+      DO.update {
         $0.counter += 1
       }
       "b"
@@ -167,7 +167,7 @@ struct NarratoreTest {
     values.testScene1_main.updateSteps {
       "a"
       "b"
-      then { .transitionTo(values.testScene2_main) }
+      DO.then { .transitionTo(values.testScene2_main) }
     }
 
     values.testScene2_main.updateSteps {
@@ -193,21 +193,27 @@ struct NarratoreTest {
 
     values.testScene1_main.updateSteps {
       "a"
-      choose { _ in
+      DO.choose { _ in
         "* 1".onSelect {
-          "b"
-            .with(id: "b is selected")
-            .then { .transitionTo(values.testScene2_main) }
+          .tell {
+            "b"
+              .with(id: "b is selected")
+          } then: {
+            .transitionTo(values.testScene2_main)
+          }
         }
 
         "* 2".onSelect {
-          "c"
-            .with(id: "c is selected")
-            .then { .transitionTo(values.testScene2_other) }
+          .tell {
+            "c"
+              .with(id: "c is selected")
+          } then: {
+            .transitionTo(values.testScene2_other)
+          }
         }
 
         "* 3".onSelect {
-          "d".then { .transitionTo(values.testScene2_other) }
+          .tell { "d" } then: { .transitionTo(values.testScene2_other) }
         }
       }
     }
@@ -238,15 +244,19 @@ struct NarratoreTest {
     values.testScene1_main.updateSteps {
       "a"
 
-      update {
+      DO.update {
         $0.counter = 10
       }
 
-      check {
-        if $0.world.counter == 10 {
-          "b"
-            .with { $0.counter -= 1 }
-            .then { .transitionTo(values.testScene2_main) }
+      DO.check {
+        .inCase($0.world.counter == 10) {
+          .tell {
+            "b"
+          } update: {
+            $0.counter -= 1
+          } then: {
+            .transitionTo(values.testScene2_main)
+          }
         }
       }
     }
@@ -254,11 +264,11 @@ struct NarratoreTest {
     values.testScene2_main.updateSteps {
       "c"
 
-      check {
+      DO.check {
         if $0.world.counter == 9 {
-          "d".with { $0.counter -= 1 }
+          .tell { "d" } update: { $0.counter -= 1 }
         } else {
-          "e"
+          .tell { "e" }
         }
       }
     }
@@ -284,9 +294,9 @@ struct NarratoreTest {
       "a"
       "b"
 
-      check {
-        if $0.world.counter == 7 {
-          "c"
+      DO.check {
+        .inCase($0.world.counter == 7) {
+          .tell { "c" }
         }
       }
 
@@ -321,7 +331,7 @@ struct NarratoreTest {
     values.testScene1_main.updateSteps {
       "a"
       "b"
-      then { .transitionTo(values.testScene1_other) }
+      DO.then { .transitionTo(values.testScene1_other) }
     }
 
     values.testScene1_other.updateSteps {
@@ -329,34 +339,50 @@ struct NarratoreTest {
       "d".with(anchor: "return")
       "e"
 
-      choose {
+      DO.choose {
         if $0.world.counter < 1 {
           "f".onSelect {
-            "f"
-              .with { $0.counter += 1 }
-              .then { .replaceWith(values.testScene1_other, at: "return") }
+            .tell {
+              "f"
+            } update: {
+              $0.counter += 1
+            } then: {
+              .replaceWith(values.testScene1_other, at: "return")
+            }
           }
         }
 
         if $0.world.counter < 2 {
           "g".onSelect {
-            "g"
-              .with { $0.counter += 1 }
-              .then { .replaceWith(values.testScene1_other, at: "return") }
+            .tell {
+              "g"
+            } update: {
+              $0.counter += 1
+            } then: {
+              .replaceWith(values.testScene1_other, at: "return")
+            }
           }
         }
 
         if $0.world.counter < 3 {
           "h".onSelect {
-            "h"
-              .with { $0.counter += 1 }
-              .then { .replaceWith(values.testScene1_other, at: "return") }
+            .tell {
+              "h"
+            } update: {
+              $0.counter += 1
+            } then: {
+              .replaceWith(values.testScene1_other, at: "return")
+            }
           }
         }
 
         if $0.world.counter < 4 {
           "i".onSelect {
-            "i".then { .replaceWith(values.testScene1_other, at: "continue") }
+            .tell {
+              "i"
+            } then: {
+              .replaceWith(values.testScene1_other, at: "continue")
+            }
           }
         }
       }
@@ -405,37 +431,37 @@ struct NarratoreTest {
       "b".with(anchor: "return")
       "c"
 
-      choose {
+      DO.choose {
         if $0.world.counter < 1 {
           "d".onSelect {
-            "d".with { $0.counter += 1 }
+            .tell { "d" } update: { $0.counter += 1 }
           }
         }
 
         if $0.world.counter < 2 {
           "e".onSelect {
-            "e".with { $0.counter += 1 }
+            .tell { "e" } update: { $0.counter += 1 }
           }
         }
 
         if $0.world.counter < 3 {
           "f".onSelect {
-            "f".with { $0.counter += 1 }
+            .tell { "f" } update: { $0.counter += 1 }
           }
         }
 
         if $0.world.counter < 4 {
           "g".onSelect {
-            "g".with { $0.counter += 1 }
+            .tell { "g" } update: { $0.counter += 1 }
           }
         }
       }
 
-      check {
+      DO.check {
         if $0.world.counter < 4 {
-          "h".then { .replaceWith(values.testScene2_main, at: "return") }
+          .tell { "h" } then: { .replaceWith(values.testScene2_main, at: "return") }
         } else {
-          "h"
+          .tell { "h" }
         }
       }
 
@@ -494,23 +520,23 @@ struct NarratoreTest {
       "a"
       "b".with(anchor: "return")
 
-      check {
+      DO.check {
         if $0.world.counter == 0 {
-          "c"
-            .with { $0.counter += 1 }
-            .then { .runThrough(values.testScene1_main) }
+          .tell { "c" }
+            update: { $0.counter += 1 }
+            then: { .runThrough(values.testScene1_main) }
         } else {
-          "d"
-            .with { $0.counter += 1 }
-            .then { .runThrough(values.testScene1_other) }
+          .tell { "d" }
+            update: { $0.counter += 1 }
+            then: { .runThrough(values.testScene1_other) }
         }
       }
 
       "e"
 
-      check {
-        if $0.world.counter < 2 {
-          "f".then { .replaceWith(values.testScene2_main, at: "return") }
+      DO.check {
+        .inCase($0.world.counter < 2) {
+          .tell { "f" } then: { .replaceWith(values.testScene2_main, at: "return") }
         }
       }
 
@@ -557,7 +583,7 @@ struct NarratoreTest {
       "b"
 
       "c"
-      then { .runThrough(values.testScene1_other) }
+      DO.then { .runThrough(values.testScene1_other) }
 
       "d"
       "e"
@@ -567,11 +593,13 @@ struct NarratoreTest {
       "f"
       "g".with(anchor: "continue")
       "h"
-      check {
-        if $0.script.narrated["did see i", default: 0] == 0 {
-          "i"
-            .with(id: "did see i")
-            .then { .replaceWith(values.testScene1_other, at: "continue") }
+      DO.check {
+        .inCase($0.script.narrated["did see i", default: 0] == 0) {
+          .tell {
+            "i".with(id: "did see i")
+          } then: {
+            .replaceWith(values.testScene1_other, at: "continue")
+          }
         }
       }
       "j"
@@ -613,7 +641,7 @@ struct NarratoreTest {
       "b"
 
       "c"
-      then { .runThrough(values.testScene1_other) }
+      DO.then { .runThrough(values.testScene1_other) }
 
       "d"
       "e"
@@ -623,11 +651,13 @@ struct NarratoreTest {
       "f"
       "g".with(anchor: "continue")
       "h"
-      check {
-        if $0.script.narrated["did see i", default: 0] == 0 {
-          "i"
-            .with(id: "did see i")
-            .then { .transitionTo(values.testScene1_other, at: "continue") }
+      DO.check {
+        .inCase($0.script.narrated["did see i", default: 0] == 0) {
+          .tell {
+            "i".with(id: "did see i")
+          } then: {
+            .transitionTo(values.testScene1_other, at: "continue")
+          }
         }
       }
       "j"
@@ -695,11 +725,11 @@ struct NarratoreTest {
 
     values.testScene1_main.updateSteps {
       "a"
-      check {
+      DO.check {
         if $0.world.counter == 0 {
-          "b"
+          .tell { "b" }
         } else {
-          "c"
+          .tell { "c" }
         }
       }
       "d"
@@ -759,11 +789,13 @@ struct NarratoreTest {
 
     values.testScene1_main.updateSteps {
       "a"
-      check {
-        if $0.script.narrated["did see b", default: 0] == 0 {
-          "b"
-            .with(id: "did see b")
-            .then { .replaceWith(values.testScene2_main) }
+      DO.check {
+        .inCase($0.script.narrated["did see b", default: 0] == 0) {
+          .tell {
+            "b".with(id: "did see b")
+          } then: {
+            .replaceWith(values.testScene2_main)
+          }
         }
       }
       "c"
@@ -772,10 +804,10 @@ struct NarratoreTest {
     values.testScene2_main.updateSteps {
       "d"
       "e"
-      then { .runThrough(values.testScene1_main) }
+      DO.then { .runThrough(values.testScene1_main) }
       "f"
       "g"
-      then { .transitionTo(values.testScene1_main) }
+      DO.then { .transitionTo(values.testScene1_main) }
     }
 
     let runner = Runner<TestGame>.init(
@@ -811,13 +843,13 @@ struct NarratoreTest {
       "c"
       "d".with(tags: ["not-observe-1"])
       "e"
-      choose(tags: ["observe-choice"]) { _ in
+      DO.choose(tags: ["observe-choice"]) { _ in
         "* 1".onSelect(tags: ["not-observe-1"]) {
-          "* 1".then { .transitionTo(values.testScene2_main) }
+          .tell { "* 1" } then: { .transitionTo(values.testScene2_main) }
         }
 
         "* 2".onSelect(tags: ["observe-1"]) {
-          "* 2".then { .transitionTo(values.testScene2_main) }
+          .tell { "* 2" } then: { .transitionTo(values.testScene2_main) }
         }
       }
     }
@@ -876,7 +908,7 @@ struct NarratoreTest {
         "a"
         "b"
         "c"
-        then { .runThrough(LocalTestScene2()) }
+        DO.then { .runThrough(LocalTestScene2()) }
         "d"
         "e"
       }
@@ -956,13 +988,13 @@ struct NarratoreTest {
     values.testScene1_main.updateSteps {
       "a"
 
-      requestText {
+      DO.requestText {
         "b"
       } validate: {
         receivedText = $0
         return .valid(.init(text: $0))
       } ifValid: { _, _ in
-        "d"
+        .tell { "d" }
       }
 
       "e"
