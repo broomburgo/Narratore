@@ -1,9 +1,9 @@
 /// The namespace for all functions that can be used in a `SceneBuilder` function.
 ///
 /// To add more functions, it should be extended.
-public enum DO {
+public enum DO<Scene: SceneType> {
   /// Build a `SceneStep` out of a series of `Message`s.
-  public static func tell<Scene: SceneType>(
+  public static func tell(
     _ anchor: Scene.Anchor? = nil,
     tags: [Scene.Game.Tag] = [],
     @MessagesBuilder<Scene.Game> getMessages: @escaping @Sendable (Context<Scene.Game>) -> [Scene.Game.Message],
@@ -21,7 +21,7 @@ public enum DO {
   }
 
   /// Create a `SceneStep` conditionally, based on the current `Context`.
-  public static func check<Scene: SceneType>(
+  public static func check(
     _ anchor: Scene.Anchor? = nil,
     /*@StepBuilder<Scene.Game> */_ getStep: @escaping @Sendable (Context<Scene.Game>) -> Step<Scene.Game>
   ) -> SceneStep<Scene> {
@@ -29,7 +29,7 @@ public enum DO {
   }
 
   /// Update the current `World`.
-  public static func update<Scene: SceneType>(
+  public static func update(
     _ anchor: Scene.Anchor? = nil,
     _ update: @escaping @Sendable (inout Scene.Game.World) -> Void
   ) -> SceneStep<Scene> {
@@ -37,7 +37,7 @@ public enum DO {
   }
 
   /// Make the player choose between options.
-  public static func choose<Scene: SceneType>(
+  public static func choose(
     _ anchor: Scene.Anchor? = nil,
     tags: [Scene.Game.Tag] = [],
     @OptionsBuilder<Scene.Game> getOptions: @escaping @Sendable (Context<Scene.Game>) -> [Option<Scene.Game>]
@@ -51,7 +51,7 @@ public enum DO {
   }
 
   /// Ask the player to enter some text.
-  public static func requestText<Scene: SceneType>(
+  public static func requestText(
     _ anchor: Scene.Anchor? = nil,
     tags: [Scene.Game.Tag] = [],
     @OptionalMessageBuilder<Scene.Game> getMessage: @escaping @Sendable () -> Scene.Game.Message?,
@@ -72,7 +72,7 @@ public enum DO {
   }
 
   /// Create a `SceneStep` with a jump `Step` and empty `Narration`.
-  public static func then<Scene: SceneType>(
+  public static func then(
     _ getSceneChange: @escaping @Sendable () -> SceneChange<Scene.Game>
   ) -> SceneStep<Scene> {
     .init(
@@ -93,12 +93,12 @@ public enum DO {
   }
 
   /// Creates a step that will be skipped; useful to establish a simple anchor that will not make the player acknowledge a narration or make a choice.
-  public static func skip<Scene: SceneType>(_ anchor: Scene.Anchor? = nil) -> SceneStep<Scene> {
+  public static func skip(_ anchor: Scene.Anchor? = nil) -> SceneStep<Scene> {
     .init(anchor: anchor, getStep: .init { _ in .skip })
   }
 
   /// Groups scene steps together.
-  public static func group<Scene: SceneType>(@SceneBuilder<Scene> _ getSteps: () -> [SceneStep<Scene>]) -> [SceneStep<Scene>] {
+  public static func group(@SceneBuilder<Scene> _ getSteps: () -> [SceneStep<Scene>]) -> [SceneStep<Scene>] {
     getSteps()
   }
 }
