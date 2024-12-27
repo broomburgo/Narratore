@@ -8,7 +8,7 @@ public func tell<Scene: SceneType>(
   .init(anchor: anchor, getStep: .init {
     let messages = getMessages($0)
 
-    return tell(tags: tags, getMessages: {
+    return .tell(tags: tags, getMessages: {
       for message in messages {
         message
       }
@@ -19,7 +19,7 @@ public func tell<Scene: SceneType>(
 /// Create a `SceneStep` conditionally, based on the current `Context`.
 public func check<Scene: SceneType>(
   _ anchor: Scene.Anchor? = nil,
-  @StepBuilder<Scene.Game> _ getStep: @escaping @Sendable (Context<Scene.Game>) -> Step<Scene.Game>
+  /*@StepBuilder<Scene.Game> */_ getStep: @escaping @Sendable (Context<Scene.Game>) -> Step<Scene.Game>
 ) -> SceneStep<Scene> {
   .init(anchor: anchor, getStep: .init(getStep))
 }
@@ -52,7 +52,7 @@ public func requestText<Scene: SceneType>(
   tags: [Scene.Game.Tag] = [],
   @OptionalMessageBuilder<Scene.Game> getMessage: @escaping @Sendable () -> Scene.Game.Message?,
   validate: @escaping @Sendable (String) -> TextRequest<Scene.Game>.Validation,
-  @StepBuilder<Scene.Game> ifValid: @escaping @Sendable (Context<Scene.Game>, TextRequest<Scene.Game>.Validated) -> Step<Scene.Game>
+  /*@StepBuilder<Scene.Game> */ifValid: @escaping @Sendable (Context<Scene.Game>, TextRequest<Scene.Game>.Validated) -> Step<Scene.Game>
 ) -> SceneStep<Scene> {
   .init(
     anchor: anchor,
@@ -109,7 +109,12 @@ extension String {
     .init(
       anchor: anchor,
       getStep: .init { _ in
-        self.with(id: id, tags: tags, update: update)
+        .tell(
+          tags: tags,
+          getMessages: { [.init(id: id, text: self)] },
+          update: update,
+          then: nil
+        )
       }
     )
   }
@@ -117,88 +122,121 @@ extension String {
 
 // MARK: - Step
 
-/// Build a `narration` step out of a series of `Message`s.
-public func tell<Game: Setting>(
-  tags: [Game.Tag] = [],
-  @MessagesBuilder<Game> getMessages: () -> [Game.Message],
-  update: Update<Game>? = nil
-) -> Step<Game> {
-  .init(narration: .init(messages: getMessages(), tags: tags, update: update))
-}
-
-/// Build a `choice` step out of a series of `Option`s.
-public func choose<Game: Setting>(
-  tags: [Game.Tag] = [],
-  @OptionsBuilder<Game> getOptions: @escaping () -> [Option<Game>]
-) -> Step<Game> {
-  .init(choice: .init(options: getOptions(), tags: tags))
-}
-
-/// Equivalent to calling `Step.init()`, which produces and empty step that will be skipped, but more ergonomic when used in `StepBuilder`.
-public func skip<Game: Setting>() -> Step<Game> {
-  .skip
-}
-
-extension String {
-  /// Create a `Step` with the `Narration` created from the root `String`.
-  public func with<Game: Setting>(
-    id: Game.Message.ID? = nil,
+extension Step {
+  /// Build a `narration` step out of a series of `Message`s.
+  public static func tell(
     tags: [Game.Tag] = [],
-    update: Update<Game>? = nil
-  ) -> Step<Game> {
-    .init(
-      narration: with(id: id, tags: tags, update: update)
-    )
+    @MessagesBuilder<Game> getMessages: () -> [Game.Message],
+    update: Update<Game>? = nil,
+    then getSceneChange: (() -> SceneChange<Game>)? = nil
+  ) -> Self {
+    let narration = Narration<Game>(messages: getMessages(), tags: tags, update: update)
+
+    return if let sceneChange = getSceneChange?() {
+      .init(jump: .init(
+        narration: narration,
+        sceneChange: sceneChange
+      ))
+    } else {
+      .init(narration: narration)
+    }
   }
 
-  /// Create a `Step` with a `Jump` containing the `Narration` created from the root `String`.
-  public func then<Game: Setting>(
-    _ getSceneChange: () -> SceneChange<Game>
-  ) -> Step<Game> {
-    .init(jump: .init(
-      narration: .init(messages: [.init(id: nil, text: self)], tags: [], update: nil),
-      sceneChange: getSceneChange()
-    ))
+  /// Build a `choice` step out of a series of `Option`s.
+  public static func choose(
+    tags: [Game.Tag] = [],
+    @OptionsBuilder<Game> getOptions: @escaping () -> [Option<Game>]
+  ) -> Self {
+    .init(choice: .init(options: getOptions(), tags: tags))
+  }
+
+  public static func inCase(_ condition: Bool, getStep: () -> Self) -> Self {
+    if condition {
+      getStep()
+    } else {
+      .skip
+    }
   }
 }
 
-extension Narration {
-  /// Create a `Step` with a `Jump` containing the root `Narration`.
-  public func then(
-    _ getSceneChange: () -> SceneChange<Game>
-  ) -> Step<Game> {
-    .init(jump: .init(
-      narration: self,
-      sceneChange: getSceneChange()
-    ))
-  }
-}
+// extension String {
+//  /// Create a `Step` with the `Narration` created from the root `String`.
+//  public func with<Game: Setting>(
+//    id: Game.Message.ID? = nil,
+//    tags: [Game.Tag] = [],
+//    update: Update<Game>? = nil,
+//    then getSceneChange: (() -> SceneChange<Game>)? = nil
+//  ) -> Step<Game> {
+//    let narration = Narration<Game>(
+//      messages: [.init(id: id, text: self)],
+//      tags: tags,
+//      update: update
+//    )
+//
+//    return if let sceneChange = getSceneChange?() {
+//      .init(jump: .init(
+//        narration: narration,
+//        sceneChange: sceneChange
+//      ))
+//    } else {
+//      .init(narration: narration)
+//    }
+//  }
+//
+//  /// Create a `Step` with a `Jump` containing the `Narration` created from the root `String`.
+//  public func then<Game: Setting>(
+//    _ getSceneChange: () -> SceneChange<Game>
+//  ) -> Step<Game> {
+//    .init(jump: .init(
+//      narration: .init(messages: [.init(id: nil, text: self)], tags: [], update: nil),
+//      sceneChange: getSceneChange()
+//    ))
+//  }
+// }
+//
+// extension Step: ExpressibleByStringLiteral {
+//  public init(stringLiteral value: String) {
+//    self.init(narration: .init(messages: [.init(id: nil, text: value)], tags: [], update: nil))
+//  }
+// }
+
+// extension Narration {
+//  /// Create a `Step` with a `Jump` containing the root `Narration`.
+//  public func then(
+//    _ getSceneChange: () -> SceneChange<Game>
+//  ) -> Step<Game> {
+//    .init(jump: .init(
+//      narration: self,
+//      sceneChange: getSceneChange()
+//    ))
+//  }
+// }
 
 // MARK: - Narration
 
 ///// Build a `narration` step out of a series of `Message`s.
-//public func tell<Game: Setting>(
+// public func tell<Game: Setting>(
 //  tags: [Game.Tag] = [],
 //  @MessagesBuilder<Game> getMessages: () -> [Game.Message],
 //  update: Update<Game>? = nil
-//) -> Narration<Game> {
+// ) -> Narration<Game> {
 //  .init(messages: getMessages(), tags: tags, update: update)
-//}
+// }
 
-extension String {
-  /// Create a `Narration` with the root `String` as message text.
-  public func with<Game: Setting>(
-    id: Game.Message.ID? = nil,
-    tags: [Game.Tag] = [],
-    update: Update<Game>? = nil
-  ) -> Narration<Game> {
-    .init(
-      messages: [.init(id: id, text: self)],
-      tags: tags,
-      update: update
-    )
-  }
-}
+// extension String {
+//  /// Create a `Narration` with the root `String` as message text.
+//  public func with<Game: Setting>(
+//    id: Game.Message.ID? = nil,
+//    tags: [Game.Tag] = [],
+//    update: Update<Game>? = nil
+//  ) -> Narration<Game> {
+//    .init(
+//      messages: [.init(id: id, text: self)],
+//      tags: tags,
+//      update: update
+//    )
+//  }
+// }
 
 // MARK: - Option
 
@@ -206,7 +244,7 @@ extension String {
   /// Create an `Option` with root the `String` as message text.
   public func onSelect<Game: Setting>(
     tags: [Game.Tag] = [],
-    @StepBuilder<Game> getStep: () -> Step<Game>
+    /*@StepBuilder<Game> */getStep: () -> Step<Game>
   ) -> Option<Game> {
     .init(
       message: .init(id: nil, text: self),
