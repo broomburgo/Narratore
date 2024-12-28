@@ -902,8 +902,6 @@ struct NarratoreTest {
     struct LocalTestScene1: SceneType {
       typealias Game = LocalTestGame
 
-      private var id = "\(Self.self)"
-
       var steps: [SceneStep<Self>] {
         "a"
         "b"
@@ -916,8 +914,6 @@ struct NarratoreTest {
 
     struct LocalTestScene2: SceneType {
       typealias Game = LocalTestGame
-
-      private var id = "\(Self.self)"
 
       var steps: [SceneStep<Self>] {
         "1"
