@@ -2,7 +2,7 @@
 
 > Most code examples in this document are taken from the `AdvancedSetting` module of the [companion package](https://github.com/broomburgo/SimpleGame).
 
-`Narratore` is designed to be extendable in ways that are easy to achieve but sufficiently sophisticated to be able to build complex game systems form a simple foundation. Because everything is based on types, protocols and constrains, and because basically all types in `Narratore` are parametrized with the generic `Game: Setting`, including result builders, it's possible to build libraries that incrementally add more features to a game setting.
+`Narratore` is designed to be extendable in ways that are easy to achieve but sufficiently sophisticated to be able to build complex game systems from a simple foundation. Because everything is based on types, protocols and constrains, and because basically all types in `Narratore` are parametrized with the generic `Game: Setting`, including result builders, it's possible to build libraries that incrementally add more features to a game setting.
 
 Let's see a couple of examples of possible extensions.
 
@@ -10,115 +10,39 @@ Let's see a couple of examples of possible extensions.
 
 Suppose we want to build a reusable `Setting` that includes some features, possibly in common with `SimpleSetting`, but includes a more sophisticated `World`, which can be partially parametrized.
 
-We could start by defining an `AdvancedSetting` that reuses some of the concepts of `SimpleSetting`
+We're not trying to build a specific setting here, but a new, more advanced set of **requirements** for a setting, that can be used to create several stories, with potentially different settings. 
 
-```swift
-import Narratore
-import SimpleSetting
+We can define our `AdvancedSetting` as a `protocol` deriving from `Setting`, that adds a few extra things, so we can use those in generic functions designed to work with a setting conforming to `AdvancedSetting`. In general, we can use protocol to define all generic requirements of our types.
 
-public enum AdvancedSetting: Setting {
-  public typealias Generate = SimpleSetting.Generate
-  public typealias Message = SimpleSetting.Message
-  public typealias Tag = SimpleSetting.Tag
-  ...
-}
-``` 
+### A more sophisticated `World`
 
-but then add a new `World` definition that includes:
+For example, we can add a new `AdvancedWorld` definition that includes:
 
 - some specific character attributes;
 - an inventory, where the inventory item type is parametrized;
 - a `custom` property that refers to a completely custom, parametrized world.
 
-A good starting point is to declare in a protocol all the extra type parameters that we need:
+To parametrize our `AdvancedWorld`, we can define a protocol that includes all the extra type parameters that we need:
 
 ```swift
-public protocol SettingExtra {
-  associatedtype CustomWorld: Codable
-  associatedtype InventoryItem: Codable, Hashable
+public protocol AdvancedWorldExtra: Sendable {
+  associatedtype Attribute: AdvancedWorldAttribute
+  associatedtype InventoryItem: AdvancedWorldInventoryItem
+  associatedtype CustomWorld: Codable, Sendable
+}
+
+public protocol AdvancedWorldAttribute: Codable, Hashable, Sendable {
+  associatedtype Value: Codable, Sendable
+}
+
+public protocol AdvancedWorldInventoryItem: Codable, Hashable, Sendable {
+  associatedtype Count: Codable, Sendable
 }
 ```
 
-Then, we can add a type parameter to `AdvancedSetting`, and ask it to conform to this protocol:
+### A localized `Message` with templating
 
-```swift
-public enum AdvancedSetting<Extra: SettingExtra>: Setting {
-  ...
-}
-```
-
-Finally, we can add a new `World` definition that takes advantage of this `Extra` parameter;
-
-```swift
-public enum AdvancedSetting<Extra: SettingExtra>: Setting {
-  public typealias Generate = SimpleSetting.Generate
-  public typealias Message = SimpleSetting.Message
-  public typealias Tag = SimpleSetting.Tag
-
-  public struct World: Codable {
-    public var attributes: Attributes
-    public var custom: Extra.CustomWorld
-    public var inventory: [Extra.InventoryItem: Int]
-
-    public init(
-      attributes: Attributes,
-      custom: Extra.CustomWorld,
-      inventory: [Extra.InventoryItem: Int]
-    ) {
-      self.attributes = attributes
-      self.custom = custom
-      self.inventory = inventory
-    }
-
-    public struct Attributes: Codable {
-      public var impact: Int
-      public var dexterity: Int
-      public var intelligence: Int
-      public var perception: Int
-      public var charisma: Int
-      public var empathy: Int
-
-      public init(
-        impact: Int,
-        dexterity: Int,
-        intelligence: Int,
-        perception: Int,
-        charisma: Int,
-        empathy: Int
-      ) {
-        self.impact = impact
-        self.dexterity = dexterity
-        self.intelligence = intelligence
-        self.perception = perception
-        self.charisma = charisma
-        self.empathy = empathy
-      }
-    }
-  }
-}
-```
-
-When using this `AdvancedSetting` in practice, we'll define a concrete `AdvancedExtra` type, that conforms to `SettingExtra`, and use it in our particular story definition, which should be, ultimately, non-parametrized:
-
-```swift
-public enum AdvancedExtra: SettingExtra {
-  public typealias CustomWorld = SimpleSetting.World
-
-  public enum InventoryItem: Codable, Hashable {
-    case apple
-    case cloak
-    case hat
-  }
-}
-
-public typealias AdvancedStory = AdvancedSetting<AdvancedExtra>
-```
-
-Notice that as `CustomWorld` we're reusing `SimpleSetting.World`
-
-## A localized `Message` with templating
-
-Another possible extension consists in defining a more complex type for `Message`, that can be incorporated in other `Setting`s. Suppose, for example, that we wan to define a `Message` type that can be localized in multiple languages. We would need 3 things:
+Another possible extension consists in defining a more complex type for `Message`, that can be incorporated in other `Setting`s. Suppose, for example, that we want to define a `Message` type that can be localized in multiple languages. We would need 3 things:
 
 - a way to define the possible languages, the current language used in the game (mutable) and the base language (for example, english);
 - a templating strategy, so we can define a dictionary of values that can be reused between translations;
@@ -131,50 +55,51 @@ public protocol Localizing {
   associatedtype Language: Hashable, Codable
   static var base: Language { get }
   static var current: Language { get set }
+  static var translations: [String: [Language: String]] { get }
 }
 ```
 
-Then we can define out actual `LocalizedMessage` type:
+Then, we can define a new `LocalizedMessage` concrete type, parametrized over a `Localization` type that conforms to `Localizing`:
 
 ```swift
-public struct LocalizedMessage<Localization: Localizing>: Messaging {  
+public struct LocalizedMessage<Localization: Localizing>: Messaging {
   public var text: String {
-    let templated: String
-    if Localization.current != Localization.base,
-       let translated = translations[Localization.current]
-    {
-      templated = translated
-    } else {
-      templated = baseText
+    guard !baseText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+      return ""
     }
 
-    return values.reduce(templated) {
+    let templated: String =
+      if Localization.current != Localization.base,
+      let translated = Localization.translations[baseText]?[Localization.current] {
+        translated
+      } else {
+        baseText
+      }
+
+    return templateValues.reduce(templated) {
       $0.replacingOccurrences(of: $1.key, with: $1.value)
     }
   }
-  
+
   public var id: ID?
   public var baseText: String
-  public var translations: [Localization.Language: String]
-  public var values: [String: String]
+  public var templateValues: [String: String]
 
   public init(
     id: ID?,
     baseText: String,
-    translations: [Localization.Language: String],
-    values: [String: String]
+    templateValues: [String: String]
   ) {
     self.id = id
     self.baseText = baseText
-    self.translations = translations
-    self.values = values
+    self.templateValues = templateValues
   }
 
   public init(id: ID?, text: String) {
-    self.init(id: id, baseText: text, translations: [:], values: [:])
+    self.init(id: id, baseText: text, templateValues: [:])
   }
 
-  public struct ID: Hashable, Codable, ExpressibleByStringLiteral, CustomStringConvertible {
+  public struct ID: Hashable, Codable, Sendable, ExpressibleByStringLiteral, CustomStringConvertible {
     public var description: String
 
     public init(stringLiteral value: String) {
@@ -182,7 +107,6 @@ public struct LocalizedMessage<Localization: Localizing>: Messaging {
     }
   }
 }
-
 ```
 
 Notice that:
@@ -191,32 +115,51 @@ Notice that:
 - the `var text: String { get }` requirement is satisfied, in this case, via a computed property, that considers `Localization.current`, `Localization.base`, the `translations` with which the message is constructed, and the `values` template dictionary;
 - the `init(id: ID?, text: String)` requirement is still satisfied, so this message can be built with a simple `String`.
 
-In order to be able to use this in the `Narratore` DSL in an ergonomic way, we need a simple function that can be called in the context of a `@SceneBuilder`. One option is to extend `String` with a particular function that returns a `SceneStep`:
+
+### Putting things together
+
+Once we defined our new requirements, described by the `AdvancedWorldExtra` and `Localizing` protocols, the trick is to create a new setting requirement with `associatedtype`s that conform to those protocols, so a specific concrete setting can provide its own types for those requirements:
+
+```swift
+public protocol AdvancedSetting: Setting where
+  World == AdvancedWorld<Extra>,
+  Message == LocalizedMessage<Localization>
+{
+  associatedtype Extra: AdvancedWorldExtra
+  associatedtype Localization: Localizing
+}
+```
+
+The `AdvancedSetting` protocol contraints the `World` and `Message` to be the new, more powerful concrete types that we defined, in order to provide new features to settings, stories and games that use it.
+
+Note that `Message` is `LocalizedMessage`, that has an extra property `templateValues: [String: String]` (in order to manage localizations of texts that contain dynamic values), but in the DSL a simple string literal for a message will use the basic `init(id: ID?, text: String)` initializer for the `Message` type, that doesn't provide any templating.
+
+We could add templating to messages in several ways, but an easy way is to define 2 new `with` function in a `String` extension, one to create a `SceneStep` (to be used at the top level of the `step` computed property of a scene), and one to create a `Message`, to be used in a `$MessagesBuilder` function (for example the one passed to the `tell` functions):
 
 ```swift
 extension String {
-  public func localized<Scene: SceneType, Localization: Localizing>(
+  public func with<Localization: Localizing>(
+    templateValues: [String: String],
+    id: LocalizedMessage<Localization>.ID? = nil
+  ) -> LocalizedMessage<Localization> {
+    .init(id: id, baseText: self, templateValues: templateValues)
+  }
+
+  public func with<Scene: SceneType>(
+    templateValues: [String: String],
     anchor: Scene.Anchor? = nil,
     id: Scene.Game.Message.ID? = nil,
-    values: [String: String] = [:],
-    translations: [Localization.Language: String] = [:]
-  ) -> SceneStep<Scene> where Scene.Game.Message == LocalizedMessage<Localization> {
+    tags: [Scene.Game.Tag] = [],
+    update: Update<Scene.Game>? = nil
+  ) -> SceneStep<Scene> where Scene.Game: AdvancedSetting {
     .init(
       anchor: anchor,
       getStep: .init { _ in
-        .init(
-          narration: .init(
-            messages: [
-              .init(
-                id: id,
-                baseText: self,
-                translations: translations,
-                values: values
-              ),
-            ],
-            tags: [],
-            update: nil
-          )
+        .tell(
+          tags: tags,
+          getMessages: { [.init(id: id, baseText: self, templateValues: templateValues)] },
+          update: update,
+          then: nil
         )
       }
     )
@@ -224,66 +167,6 @@ extension String {
 }
 ```
 
-Notice that this function is completely generic:
+Note that in the second `with` function we are creating a `LocalizedMessage` in the `getMessages` closure, because `Scene.Game: AdvancedSetting` and in `AdvancedSetting` the `Message` is constrained to be `LocalizedMessage`.
 
-- it doesn't depend on a concrete specific `Game: Setting`, it only requires that the `Message` of the `Game` (reachable through `B.Game` where `B` is the `Scene`) is in fact a `LocalizedMessage`;
-- it doesn't depend on a concrete specific `Localization` type, it only requires that it conforms to the `Localizing` protocol.
-
-As you can see, the `LocalizedMessage` could be added to any `Game: Setting`, and the `localized` DSL function would then become "magically" available. For example, we can add this new `Localization` parameter to our `AdvancedSetting`, and thus be able to use `LocalizedMessage` in it:
-
-```swift
-public enum AdvancedSetting<Extra: SettingExtra, Localization: Localizing>: Setting {
-  ...
-  public typealias Message = LocalizedMessage<Localization>
-  ...
-}
-```
-
-Finally, here's a very basic example of a concrete `AdvancedStory`, that uses the `AdvancedSetting` and shows how the `localized` function can be used in the context of a `@SceneBuilder`:
-
-```swift
-public enum AdvancedExtra: SettingExtra {
-  public typealias CustomWorld = SimpleSetting.World
-
-  public enum InventoryItem: Codable, Hashable {
-    case apple
-    case cloak
-    case hat
-  }
-}
-
-public enum AdvancedLocalization: Localizing {
-  public enum Language: Hashable, Codable {
-    case english
-    case italian
-  }
-
-  public static let base: Language = .english
-  public static var current: Language = .italian
-}
-
-public typealias AdvancedStory = AdvancedSetting<AdvancedExtra, AdvancedLocalization>
-
-extension AdvancedStory: Story {
-  public static let scenes: [RawScene<Self>] = [
-    AdvancedScene.raw,
-  ]
-}
-
-struct AdvancedScene: SceneType {
-  typealias Game = AdvancedStory
-
-  var steps: [SceneStep<Self>] {
-    "Hello!".localized(translations: [
-      .italian: "Ciao!",
-    ])
-
-    "This is a story in english created with GAME_ENGINE_NAME".localized(
-      values: ["GAME_ENGINE_NAME": "Narratore"],
-      translations: [
-        .italian: "Questa è una storia in italiano creata con GAME_ENGINE_NAME",
-      ]
-    )
-  }
-}
-```
+Finally, to see an example of a concrete setting conforming to `AdvancedSetting`, check the `MyAdvancedSetting` type in the companion package.
