@@ -36,7 +36,7 @@ public enum DO<Scene: SceneType> {
   /// Update the current `World`.
   public static func update(
     anchor: Scene.Anchor? = nil,
-    _ update: @escaping @Sendable (inout Scene.Game.World) -> Void
+    _ update: @escaping Update<Scene.Game>
   ) -> SceneStep<Scene> {
     .init(anchor: anchor, getStep: .init { _ in .init(update: update) })
   }

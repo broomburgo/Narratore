@@ -77,16 +77,16 @@ extension Step {
         }
 
         info.script.append(choice: choice)
-        next.update?(&info.world)
+        await next.update?(&info.world)
 
         return await choice.options[optionIndex].step.apply(info: &info, handling: handling)
 
       case .replay:
-        next.update?(&info.world)
+        await next.update?(&info.world)
         return .replay
 
       case .stop:
-        next.update?(&info.world)
+        await next.update?(&info.world)
         return .stop
       }
     }
@@ -112,17 +112,17 @@ extension Step {
       case .advance(let validatedText):
         info.script.append(textRequest: textRequest)
         info.script.append(narration: .init(messages: [.init(id: nil, text: validatedText.value)], tags: [], update: nil))
-        next.update?(&info.world)
+        await next.update?(&info.world)
 
         let step = await textRequest.getStep(.init(text: validatedText.value))
         return await step.apply(info: &info, handling: handling)
 
       case .replay:
-        next.update?(&info.world)
+        await next.update?(&info.world)
         return .replay
 
       case .stop:
-        next.update?(&info.world)
+        await next.update?(&info.world)
         return .stop
       }
     }
@@ -139,19 +139,19 @@ extension Step {
         .advance
       }
 
-      defer { next.update?(&info.world) }
-
       switch next.action {
       case .advance:
         info.script.append(narration: narration)
-        narration.update?(&info.world)
-
+        await narration.update?(&info.world)
+        await next.update?(&info.world)
         return .advance(nil)
 
       case .replay:
+        await next.update?(&info.world)
         return .replay
 
       case .stop:
+        await next.update?(&info.world)
         return .stop
       }
     }
@@ -168,19 +168,19 @@ extension Step {
         .advance
       }
 
-      defer { next.update?(&info.world) }
-
       switch next.action {
       case .advance:
         info.script.append(narration: jump.narration)
-        jump.narration.update?(&info.world)
-
+        await jump.narration.update?(&info.world)
+        await next.update?(&info.world)
         return .advance(jump.sceneChange)
 
       case .replay:
+        await next.update?(&info.world)
         return .replay
 
       case .stop:
+        await next.update?(&info.world)
         return .stop
       }
     }
@@ -188,8 +188,7 @@ extension Step {
 
   public init(update: @escaping Update<Game>) {
     self.init { info, _ in
-      update(&info.world)
-
+      await update(&info.world)
       return .advance(nil)
     }
   }

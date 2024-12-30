@@ -148,4 +148,4 @@ public struct Jump<Game: Setting>: Sendable {
 }
 
 /// A function to update the game `World`.
-public typealias Update<Game: Setting> = @Sendable (inout Game.World) -> Void
+public typealias Update<Game: Setting> = @Sendable (inout Game.World) async -> Void
