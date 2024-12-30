@@ -68,10 +68,7 @@ public struct Next<Game: Setting, Advancement: Sendable>: Sendable {
   public var action: Action
   public var update: Update<Game>?
 
-  public init(
-    action: Action,
-    update: Update<Game>?
-  ) {
+  public init(action: Action, update: Update<Game>?) {
     self.action = action
     self.update = update
   }

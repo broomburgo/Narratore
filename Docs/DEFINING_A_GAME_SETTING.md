@@ -140,7 +140,7 @@ public enum SimpleSetting: Setting {
 
 The `World` type should represent the state of the game world. A game in `Narratore` must be started with an initial value for `World`, and it can be easily changed and manipulated during the course of the story, or even by the game engine itself, in case we need to make changes when running a game: for example, if a game has an inventory, and the player can interact with it outside of the story, we can reflect this change to the game world in the `Handler` (see [Running the game](RUNNING_THE_GAME.md)).
 
-The only requirement for `World` is to be `Codable`, because `Narratore` expects the full state of the game (including `World`) to be serialized when running the game, so that after exiting and entering it again, such state can be restored.
+The only requirements for `World` are to be `Sendable` and `Codable`, because `Narratore` expects the full state of the game (including `World`) to be serialized when running the game, so that after exiting and entering it again, such state can be restored.
 
 `World` is an important part of `Narratore`, but there's no need to record everything in it: in fact, `Narratore` already records many aspects of the story, for example the messages a player has read, or the observed tags: in order to see how to keep track of the game state outside of `World`, please check [Writing a story](WRITING_A_STORY.md).
 
@@ -148,20 +148,21 @@ Ideally, a `World` is very specific to a certain type of game setting: for examp
 
 ```swift
 public enum SimpleSetting: Setting {
-  public struct World: Codable {
+  ...
+  public struct World: Codable, Sendable {
     public var value: [Key: Value] = [:]
     public var list: [Key: [Value]] = [:]
-    
+
     public init() {}
 
-    public struct Key: ExpressibleByStringLiteral, CustomStringConvertible, Codable, Equatable, Hashable {
+    public struct Key: ExpressibleByStringLiteral, CustomStringConvertible, Codable, Equatable, Hashable, Sendable {
       public var description: String
       public init(stringLiteral value: String) {
         description = value
       }
     }
 
-    public struct Value: ExpressibleByStringLiteral, CustomStringConvertible, Codable, Equatable {
+    public struct Value: ExpressibleByStringLiteral, CustomStringConvertible, Codable, Equatable, Sendable {
       public var description: String
       public init(stringLiteral value: String) {
         description = value
