@@ -23,7 +23,7 @@ Each associated type has additional requirements, let's see them in detail.
 
 ## Generate
 
-The purpose of the `Generate` type is to provide a game `Setting` with an integrated system to generate values (for example, random numbers). The type must conform to the `Generate` protocol, that currently only requires a static function to produce a random ratio between 0 and 1, and a static function to produce a unique string: the protocol could be expanded in the future with extra requirements, like a function to generate progressive integers, or a function to hash a string.
+The purpose of the `Generate` type is to provide a game `Setting` with an integrated system to generate values (for example, random numbers). The type must conform to the `Generating` protocol, that currently only requires a static function to produce a random ratio between 0 and 1, and a static function to produce a unique string: the protocol could be expanded in the future with extra requirements, like a function to generate progressive integers, or a function to hash a string.
 
 For testing purposes, it can be useful to give a `Generate` type some way to fix the values that are going to be produced, for example to control randomness.
 
@@ -33,19 +33,33 @@ Here's possible `Generate` definition for our `SimpleSetting`:
 public enum SimpleSetting: Setting {
   ...
   public enum Generate: Generating {
-    public static var getFixedRandomRatio: (() -> Double)? = nil
-    public static var getFixedUniqueString: (() -> String)? = nil
+    public actor Fixed {
+      public static let shared = Fixed()
 
-    public static func randomRatio() -> Double {
-      getFixedRandomRatio?() ?? Double((0...1000).randomElement()!)/1000
+      public var randomRatio: Double?
+      public var uniqueString: String?
+
+      public func set(randomRatio: Double?) {
+        self.randomRatio = randomRatio
+      }
+
+      public func set(uniqueString: String?) {
+        self.uniqueString = uniqueString
+      }
     }
-    
-    public static func uniqueString() -> String {
-      getFixedUniqueString?() ?? UUID().uuidString
+
+    public static func randomRatio() async -> Double {
+      await Fixed.shared.randomRatio ?? Double((0...1000).randomElement()!) / 1000
     }
-  }  
+
+    public static func uniqueString() async -> String {
+      await Fixed.shared.uniqueString ?? UUID().uuidString
+    }
+  }
 }
 ```
+
+Thanks to the fact that the required functions can be `async`, we can use an `actor` to safely store fixed values for testing purposes.
 
 ## Message
 
@@ -64,20 +78,24 @@ In order to continue defining our `SimpleSetting`, let's define a `SimpleMessage
 ```swift
 public enum SimpleSetting: Setting {
   ...  
-  public struct Message: Messaging {
+  public struct Message: Messaging, ExpressibleByStringLiteral {
     public var id: ID?
     public var text: String
-    
+
     public init(id: ID?, text: String) {
       self.id = id
       self.text = text
     }
-    
-    public struct ID: Hashable, Codable, ExpressibleByStringLiteral, CustomStringConvertible {
+
+    public init(stringLiteral value: String) {
+      self.init(id: nil, text: value)
+    }
+
+    public struct ID: Hashable, Codable, Sendable, ExpressibleByStringLiteral, CustomStringConvertible {
       public var description: String
-      
+
       public init(stringLiteral value: String) {
-        self.description = value
+        description = value
       }
     }
   }
@@ -87,11 +105,13 @@ public enum SimpleSetting: Setting {
 
 Instead of simply using `String` for the `associatedtype ID`, we defined a basic `ID` type that can essentially be created from and transformed to a `String`. The advantage of specifying a type is that we'll be able to extend this and give it more power if it's needed. Defining a specific type for something instead of using a `typealias` is the more flexible option, but it requires a small amount of boilerplate (`ID` in fact is essentially wrapping of `String` not much more).
 
+We also conformed `Message` to `ExpressibleByStringLiteral`, so it can be easily produced from a `String` in cases were the `DSL` won't help us.
+
 ## Tag
 
-Each narration step in `Narratore` can be assigned zero or more `Tag`s, that represents additional metadata to take into account when that narration step is received by the `Handler` (see [Running the game](RUNNING_THE_GAME.md) for more details). For example, a `Tag` can be associated with showing some image in the game, or playing a sound, or modifying the font or the message text, or can be used to start a timer or attach some additional information that's relevant to the state of the game in general, but doesn't affect the way some particular narration step is communicated to the player.
+Each narration step in `Narratore` can be equipped with zero or more `Tag`s, that represents additional metadata to take into account when that narration step is received by the `Handler` (see [Running the game](RUNNING_THE_GAME.md) for more details). For example, a `Tag` can be associated with showing some image in the game, or playing a sound, or modifying the font or the message text, or can be used to start a timer or attach some additional information that's relevant to the state of the game in general, but doesn't affect the way some particular narration step is communicated to the player.
 
-The `Tag` type must conform to the `Tagging` protocol, that makes it `Hashable` and `Codable`, and requires a `shouldObserve: Bool` property: if `shouldObserve` is `true` the tag will recorded in the global state of the game, and the count of observations for that tag can always be accessed from the `Script` type.
+The `Tag` type must conform to the `Tagging` protocol, that makes it `Hashable`, `Codable` and `Sendable`, and requires a `shouldObserve: Bool` property: if `shouldObserve` is `true` the tag will be recorded in the global state of the game, and the count of observations for that tag can always be accessed from the `Script` type.
 
 Let's add a simple `Tag` definition to `SimpleSetting`:
 
@@ -101,12 +121,12 @@ public enum SimpleSetting: Setting {
   public struct Tag: Tagging, CustomStringConvertible {
     public var value: String
     public var shouldObserve: Bool
-    
+
     public init(_ value: String, shouldObserve: Bool = false) {
       self.value = value
       self.shouldObserve = shouldObserve
     }
-    
+
     public var description: String {
       value
     }
