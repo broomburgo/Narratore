@@ -14,7 +14,6 @@ A `Scene` is a type conforming to the `protocol SceneType`. Essentially, a `Scen
 
 ```swift
 struct Car: SceneType {
-  private var typeName = Self.identifier
   ...
 }
 ```
@@ -642,3 +641,20 @@ checkMentalHealth()
 
 "You keep going"
 ```
+
+## Providing an initial scene
+
+Typically, declarations in a `Narratore` story package are not `public`, because they're not supposed to be referenced from outside, save for the `Setting` itself: once the story starts, the story package should run itself automatically, so the scenese don't need to be `public`.
+
+But a `Runner`, to start from the begining, will need the initial scene. In order to provide the scene without exposing the details outside the package, it's possible to add this declaration to a story package:
+
+```swift
+/// assuming that the `Setting` is `MyStory`, and that the first scene is `InitialScene`
+extension MyStory {
+  public static func initialScene() -> some SceneType<Self> {
+    InitialScene()
+  }
+}
+```
+
+Since `MyStory` is `public`, the `Runner` can be initialized with `MyStory.initialScene()`.

@@ -150,11 +150,11 @@ public struct Context<Game: Setting>: Sendable {
 
 /// A convenience `struct` that wraps to functionality of `Generate`.
 public struct Generate<Game: Setting>: Sendable {
-  public let randomRatio: @Sendable () -> Double
-  public let uniqueString: @Sendable () -> String
+  public let randomRatio: @Sendable () async -> Double
+  public let uniqueString: @Sendable () async -> String
 
   init() {
-    randomRatio = { Game.Generate.randomRatio() }
-    uniqueString = { Game.Generate.uniqueString() }
+    randomRatio = { await Game.Generate.randomRatio() }
+    uniqueString = { await Game.Generate.uniqueString() }
   }
 }

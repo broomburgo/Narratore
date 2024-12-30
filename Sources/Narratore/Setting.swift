@@ -15,8 +15,8 @@ public protocol Setting {
 
 /// Defines generating functions for values.
 public protocol Generating {
-  static func randomRatio() -> Double
-  static func uniqueString() -> String
+  static func randomRatio() async -> Double
+  static func uniqueString() async -> String
 }
 
 /// Represents the requirements for a game `Message`.

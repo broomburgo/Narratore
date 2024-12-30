@@ -137,7 +137,7 @@ extension Next where Advancement == Void {
 public enum Failure<Game: Setting>: Error {
   case cannotDecodeSection(errors: [Error])
   case invalidOptionId(expected: [String], received: String)
-  case invalidSceneIdentifier(expected: String, received: String)
+  case invalidSceneId(expected: String, received: String)
   case noOptions(choice: Choice<Game>)
 }
 

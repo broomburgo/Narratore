@@ -23,7 +23,7 @@ struct NarratoreTest {
       "d"
     }
 
-    let runner = Runner<TestGame>.init(
+    let runner = Runner<TestGame>(
       handler: .mock(),
       status: .init(
         world: .init(),
@@ -75,7 +75,7 @@ struct NarratoreTest {
       "g"
     }
 
-    let runner = Runner<TestGame>.init(
+    let runner = Runner<TestGame>(
       handler: .mock(),
       status: .init(
         world: .init(),
@@ -102,7 +102,7 @@ struct NarratoreTest {
       "b"
     }
 
-    let runner = Runner<TestGame>.init(
+    let runner = Runner<TestGame>(
       handler: .mock(),
       status: .init(
         world: .init(),
@@ -129,7 +129,7 @@ struct NarratoreTest {
     nonisolated(unsafe) var gameStartedCount = 0
     nonisolated(unsafe) var gameEndedCount = 0
 
-    await Runner<TestGame>.init(
+    await Runner<TestGame>(
       handler: .mock(
         handleEvent: { @Sendable in
           switch $0 {
@@ -175,7 +175,7 @@ struct NarratoreTest {
       "d"
     }
 
-    let runner = Runner<TestGame>.init(
+    let runner = Runner<TestGame>(
       handler: .mock(),
       status: .init(
         world: .init(),
@@ -223,7 +223,7 @@ struct NarratoreTest {
       "d"
     }
 
-    let runner = Runner<TestGame>.init(
+    let runner = Runner<TestGame>(
       handler: .mock(),
       status: .init(
         world: .init(),
@@ -273,7 +273,7 @@ struct NarratoreTest {
       }
     }
 
-    let runner = Runner<TestGame>.init(
+    let runner = Runner<TestGame>(
       handler: .mock(),
       status: .init(
         world: .init(),
@@ -304,7 +304,7 @@ struct NarratoreTest {
     }
 
     var runner: Runner<TestGame>?
-    runner = Runner<TestGame>.init(
+    runner = Runner<TestGame>(
       handler: .mock(acknowledgeNarration: { @Sendable in
         if $0.messages.map(\.text) == ["b"] {
           return .advance {
@@ -391,7 +391,7 @@ struct NarratoreTest {
       "k"
     }
 
-    let runner = Runner<TestGame>.init(
+    let runner = Runner<TestGame>(
       handler: .mock(),
       status: .init(
         world: .init(),
@@ -468,7 +468,7 @@ struct NarratoreTest {
       "i"
     }
 
-    let runner = Runner<TestGame>.init(
+    let runner = Runner<TestGame>(
       handler: .mock(),
       status: .init(
         world: .init(),
@@ -544,7 +544,7 @@ struct NarratoreTest {
       "h"
     }
 
-    let runner = Runner<TestGame>.init(
+    let runner = Runner<TestGame>(
       handler: .mock(),
       status: .init(
         world: .init(),
@@ -606,7 +606,7 @@ struct NarratoreTest {
       "k"
     }
 
-    let runner = Runner<TestGame>.init(
+    let runner = Runner<TestGame>(
       handler: .mock(),
       status: .init(
         world: .init(),
@@ -664,7 +664,7 @@ struct NarratoreTest {
       "k"
     }
 
-    let runner = Runner<TestGame>.init(
+    let runner = Runner<TestGame>(
       handler: .mock(),
       status: .init(
         world: .init(),
@@ -700,7 +700,7 @@ struct NarratoreTest {
 
     nonisolated(unsafe) var didReplay = false
 
-    let runner = Runner<TestGame>.init(
+    let runner = Runner<TestGame>(
       handler: .mock(acknowledgeNarration: { @Sendable in
         if !didReplay, $0.messages.map(\.text) == ["b"] {
           didReplay = true
@@ -735,7 +735,7 @@ struct NarratoreTest {
       "d"
     }
 
-    let runner = Runner<TestGame>.init(
+    let runner = Runner<TestGame>(
       handler: .mock(acknowledgeNarration: { @Sendable in
         if $0.messages.map(\.text) == ["b"] {
           .replay {
@@ -765,7 +765,7 @@ struct NarratoreTest {
       "c"
     }
 
-    let runner = Runner<TestGame>.init(
+    let runner = Runner<TestGame>(
       handler: .mock(acknowledgeNarration: { @Sendable in
         if $0.messages.map(\.text) == ["b"] {
           .stop
@@ -810,7 +810,7 @@ struct NarratoreTest {
       DO.then { .transitionTo(values.testScene1_main) }
     }
 
-    let runner = Runner<TestGame>.init(
+    let runner = Runner<TestGame>(
       handler: .mock(),
       status: .init(
         world: .init(),
@@ -854,7 +854,7 @@ struct NarratoreTest {
       }
     }
 
-    let runner = Runner<TestGame>.init(
+    let runner = Runner<TestGame>(
       handler: .mock(),
       status: .init(
         world: .init(),
@@ -998,7 +998,7 @@ struct NarratoreTest {
 
     nonisolated(unsafe) var receivedRequest: TestPlayer.TextRequest?
 
-    let runner = Runner<TestGame>.init(
+    let runner = Runner<TestGame>(
       handler: .mock(answerRequest: { @Sendable in
         receivedRequest = $0
         switch $0.validate("c") {

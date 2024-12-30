@@ -61,11 +61,11 @@ extension SceneType {
 
   /// The "raw" representation of the `Scene`, used for decoding.
   public static var raw: RawScene<Game> {
-    .init {
-      let helper = try SectionCodableHelper<Self>(from: $0)
+    .init { decoder in
+      let helper = try SectionCodableHelper<Self>(from: decoder)
 
-      guard helper.identifier == Self.id else {
-        throw Failure<Game>.invalidSceneIdentifier(expected: Self.id, received: helper.identifier)
+      guard helper.id == Self.id else {
+        throw Failure<Game>.invalidSceneId(expected: Self.id, received: helper.id)
       }
 
       return .init(scene: helper.scene, anchor: {
@@ -217,11 +217,11 @@ extension Section: Decodable where Game: Story {
 private struct SectionCodableHelper<Scene: SceneType>: Codable {
   var scene: Scene
   var anchor: Scene.Anchor?
-  var identifier: String
+  var id: String
 
   init(scene: Scene, anchor: Scene.Anchor?) {
     self.scene = scene
     self.anchor = anchor
-    identifier = Scene.id
+    id = Scene.id
   }
 }

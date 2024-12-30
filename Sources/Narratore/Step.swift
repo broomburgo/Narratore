@@ -48,12 +48,13 @@ extension Step {
         return await firstOption.step.apply(info: &info, handling: handling)
       }
 
-      let playerOptions = choice.options.map {
-        Player<Game>.Option(
+      var playerOptions = [Player<Game>.Option]()
+      for option in choice.options {
+        await playerOptions.append(.init(
           id: Game.Generate.uniqueString(),
-          message: $0.message,
-          tags: $0.tags
-        )
+          message: option.message,
+          tags: option.tags
+        ))
       }
 
       let next = await handling.make(choice: .init(
