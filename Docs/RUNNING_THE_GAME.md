@@ -2,26 +2,27 @@
 
 > All the code examples in this document are taken from the `SimpleHandler` and `SimpleGame` modules of the [companion package](https://github.com/broomburgo/SimpleGame).
 
-The essential tool for running a game built with `Narratore` is the `Runner` actor. In turn. `Runner` uses an instance of some type that conforms to the `Handler` protocol in order to communicate with the game engine (thus, with the player) and send it the various game events, like new narration steps, or choices to make. Before diving into `Runner`, let's see what's required from a `Handler` type.
+The essential tool for running a game built with `Narratore` is the `Runner` actor. In turn, `Runner` uses an instance of some type that conforms to the `Handler` protocol in order to communicate with the game engine (thus, with the player) and send to it the various game events, like new narration steps, or choices to make. Before diving into `Runner`, let's see what's required from a `Handler` type.
 
 `Handler` is a protocol that has the following definition:
 
 ```swift
-public protocol Handler {
+public protocol Handler: Sendable {
   associatedtype Game: Setting
 
   func acknowledge(narration: Player<Game>.Narration) async -> Next<Game, Void>
   func make(choice: Player<Game>.Choice) async -> Next<Game, Player<Game>.Option>
+  func answer(request: Player<Game>.TextRequest) async -> Next<Game, Player<Game>.ValidatedText>
   func handle(event: Player<Game>.Event)
 }
 ```
 
 Each callback function declared by `Handler` has a specific meaning, and a signature that's specific to the requirements of the particular functionality that the function expresses. The value that are expected as input or output are typically included in the `Player<Game>` namespace, that defines types that represent internal concepts of `Narratore` (like `Narration` and `Choice`) but in a "player-facing" fashion, that hides private details and restricts the options. Let's see each function in detail.
 
-Also, while exploring in detail the `Handler` protocol and the `Runner` APIs, let's define a `SimpleHandler` class that can be used to run a game on the command line:
+While exploring in detail the `Handler` protocol and the `Runner` APIs, let's define a `SimpleHandler` class that can be used to run a game on the command line:
 
 ```swift
-public final class SimpleHandler<Game: Story> {
+public struct SimpleHandler<Game: Story> {
   ...
 }
 ```
@@ -30,7 +31,7 @@ We want `Game` to conform to `Story` because `SimpleHandler` will also take care
 
 ## `acknowledge(narration:)`
 
-This will be called each time a new narration step must be presented to the user. A `Player.Narration` value is passed in the function, with the following structure:
+This will be called each time a new narration step must be presented to the user. A `Player.Narration` value is passed to the function, with the following structure:
 
 ```swift
 public enum Player<Game: Setting> {
@@ -45,12 +46,14 @@ public enum Player<Game: Setting> {
 The `Narration` will contain a list of `Message`s and a list of `Tag`s (both possibly empty), of the types declared in the game `Setting` definition: `Runner` will actually skip the call to `acknowledge(narration:)` if both `messages` and `tags` are empty, because there would actually be nothing to acknowledge. This function is `async`, so it can be suspended, in order, for example, to wait for the user to acknowledge the message. The function must return an instance of type `Next` with the following structure:
 
 ```swift
-public struct Next<Game: Setting, A> {
+public struct Next<Game: Setting, Advancement: Sendable>: Sendable {
   public var action: Action
   public var update: Update<Game>?
   
+  ...
+  
   public enum Action {
-    case advance(A)
+    case advance(Advancement)
     case replay
     case stop
   }
@@ -65,11 +68,11 @@ public struct Next<Game: Setting, A> {
 
 The `action` could be one of the following:
 
-- `advance`: advance to the next step, passing a generic `A` value to the `Runner` (in the case of `Narration`, `A` is simply `Void`);
+- `advance`: advance to the next step, passing a generic `Advancement` value to the `Runner` (in the case of `Narration`, `Advancement` is simply `Void`);
 - `replay`: replay the last step (the `update` to the game `World` will be executed before replaying it);
 - `stop`: stop the game.
 
-Here's a possible implementation of `acknowledge(narration:)` in our `SimpleHandler` class:
+Here's a possible implementation of `acknowledge(narration:)` in our `SimpleHandler` struct:
 
 ```swift
 extension SimpleHandler: Handler {
@@ -77,7 +80,7 @@ extension SimpleHandler: Handler {
     if !narration.tags.isEmpty {
       print("[\(narration.tags.map { "\($0)" }.joined(separator: "|"))]")
     }
-    
+
     for message in narration.messages {
       print(message)
 
@@ -101,7 +104,7 @@ This will be called each time the player is expected to make a choice. The `Play
 ```swift
 public enum Player<Game: Setting> {
   ...
-  public struct Option {
+  public struct Option: Sendable {
     let id: String
     public let message: Game.Message
     public let tags: [Game.Tag]
@@ -115,7 +118,7 @@ The `message` is the one to be shown to present the option to the player, and th
 Here's a possible implementation of `make(choice:)` in our `SimpleHandler` class:
 
 ```swift
-public final class SimpleHandler<Game: Story> {
+public struct SimpleHandler<Game: Story> {
   ...
   private func input(accepted: [String]) -> String {
     while true {
@@ -155,11 +158,11 @@ The function will `print` the possible options, together with their index (start
 
 ## `handle(event:)`
 
-`Event` is a flexible type that expresses various events that the `Runner` will communicate to the `Handler` in a "fire-and-forget" fashion: `Runner` will simply relay these events to the `Handler`, without expecting anything particular in return. The possible events are the following:
+`Event` is a flexible type that expresses various events that the `Runner` will communicate to the `Handler` in a "fire-and-forget" fashion: `Runner` will simply relay these events to the `Handler`, without expecting anything particular in return, and without suspending the function that's being executed. The possible events are the following:
 
 ```swift
-public enum Player<Game: Setting> {
-  public enum Event {
+public enum Player<Game: Setting>: Sendable {
+  public enum Event: Sendable {
     case gameStarted(Status<Game>)
     case gameEnded
     case errorProduced(Failure<Game>)
@@ -197,9 +200,9 @@ extension SimpleHandler: Handler {
       guard let data = try? encoder.encode(status) else {
         break
       }
-      let currentDirectory = fm.currentDirectoryPath
-      try? fm.createDirectory(atPath: "\(currentDirectory)/\(directoryPath)", withIntermediateDirectories: true)
-      try? fm.removeItem(atPath: "\(currentDirectory)/\(filePath)")
+      let currentDirectory = FileManager.default.currentDirectoryPath
+      try? FileManager.default.createDirectory(atPath: "\(currentDirectory)/\(directoryPath)", withIntermediateDirectories: true)
+      try? FileManager.default.removeItem(atPath: "\(currentDirectory)/\(filePath)")
       try? data.write(to: URL(fileURLWithPath: "\(currentDirectory)/\(filePath)"))
 
     case .gameStarted(let status):
@@ -216,7 +219,7 @@ extension SimpleHandler: Handler {
 
     case .gameEnded:
       print("The story ended. Until next time.")
-      try? fm.removeItem(atPath: filePath)
+      try? FileManager.default.removeItem(atPath: filePath)
 
     case .errorProduced(let failure):
       print("ERROR: \(failure)")
@@ -227,33 +230,59 @@ extension SimpleHandler: Handler {
 
 By using `FileManager` and `JSONEncoder`, `SimpleHandler` is able to persist the state of the story (expressed by the `Status` type) each time it changes via the `statusUpdated` event, into a `.json` file at a certain path. Also, in `gameStarted`, it will show a simple welcome message, and print the last 4 messages from `status.info.script.words`, if available, for example when the game is restored from a previous `Status`. When the game ends, and `gameEnded` is received, `SimpleHandler` will delete the `.json` file with the game state. Finally, in case of `errorProduced`, the error will be simply printed.
 
-## The `Runner`
+## `answer(request:)`
 
-In order to actually execute the game, the `Runner` actor must be used. `Runner` will simply require an `Handler` and a `Status` to be initialized, and the only public function is `start()`. `Runner` also exposes a public `info: Info` property, that can be accessed at any time and will contain the latest game `Info` value, but given that `Runner` is an actor, the property access will be `async`.
-
-As mentioned, `Runner` requires an `Handler` and a `Status` to be initialized: the `Status` could be the one retrieved from a previously run and interrupted game, but can also be constructed with a starting value depending on a state of the the game `World`, and a `Scene`:
+Finally, an `Handler` must define a function to answer a `TestRequest` type, defined as
 
 ```swift
-public struct Status<Game: Setting> {
-  public init<Scene>(world: Game.World, scene: S) where S: Scene, S.Game == Game {
+public enum Player<Game: Setting>: Sendable {
+  ...
+  public struct TextRequest: Sendable {
+    public let message: Game.Message?
+    public let validate: @Sendable (String) -> Validation
+    public let tags: [Game.Tag]
+
+    public enum Validation: Sendable {
+      case valid(ValidatedText)
+      case invalid(Game.Message?)
+    }
+  }
+
+  public struct ValidatedText: Sendable {
+    public let value: String
+  }
+  ...
+}
+```
+
+This will be used by `Narratore` when the player must be asked to enter some text (for example, when naming a character).
+
+## The `Runner`
+
+In order to actually execute the game, the `Runner` actor must be used. `Runner` will simply require a `Handler` and a `Status`, to be initialized, and the only public function is `start()`. `Runner` also exposes a public `info: Info` property, that can be accessed at any time and will contain the latest game `Info` value, but given that `Runner` is an actor, the property access will be `async`.
+
+As mentioned, `Runner` requires an `Handler` and a `Status`, to be initialized: the `Status` could be the one retrieved from a previously run and interrupted game, but can also be constructed with a starting value depending on a state of the game `World`, and a `Scene`:
+
+```swift
+public struct Status<Game: Setting>: Encodable, Sendable {
+  public init(world: Game.World, scene: some SceneType<Game>) {
     ...
   }
-  
   ...
 }
 ```
 
 Generally, when starting a fresh game, this `init` will be used. `Status` doesn't have any other public `init`, but it's `Encodable` in general, and `Decodable` if `Game` is a `Story`. So it can be serialized, and retrieved from a serialized state.
 
-We want our `SimpleHandler` to also handle the serialization of `Status` so it makes sense to also equip it a function to retrieve and decode a serialized `Status`, if available (and if the player wants to continue a previously interrupted game):
+We want our `SimpleHandler` to also handle the serialization of `Status` so it makes sense to also equip it with a function to retrieve and decode a serialized `Status`, if available (and if the player wants to continue a previously interrupted game):
 
 ```swift
-public final class SimpleHandler<Game: Story> {
+public struct SimpleHandler<Game: Story> {
   private let decoder = JSONDecoder()
   ...
   public func askToRestoreStatusIfPossible() -> Status<Game>? {
     let useFile: Bool
-    if fm.fileExists(atPath: filePath) {
+    if FileManager.default.fileExists(atPath: filePath) {
       print("""
       A Narratore status file was found at '\(filePath)': do you want to continue where you left?
       "[Valid inputs: y, n. Hit RETURN after entering a valid input.]"
@@ -309,7 +338,7 @@ enum Main {
       handler: handler,
       status: handler.askToRestoreStatusIfPossible() ?? .init(
         world: .init(),
-        scene: Start()
+        scene: SimpleStory.initialScene()
       )
     )
     
@@ -321,4 +350,4 @@ enum Main {
 This code can be found in the `SimpleGame` target of the `SimpleGame` companion Swift package. Notice that this module imports all other modules (it's not strictly necessary, due to transitive dependencies, but it's useful for documentation purposes), because:
 
 - to construct a `Runner` we need a `Handler` and a `Status`;
-- to construct a `Status` we need a `World`, defined in the game `Setting`, and an initial `Scene`, defined in the game `Story`.
+- to construct a `Status` we need a `World`, defined in the game `Setting`, and the `initialScene()`, defined in the game `Story`.

@@ -111,7 +111,7 @@ public struct Status<Game: Setting>: Encodable, Sendable {
   public internal(set) var sceneStack: [SceneStatus<Game>]
 
   /// Create a initial `Status` for a certain `World` instance and `Scene`.
-  public init<Scene>(world: Game.World, scene: Scene) where Scene: SceneType, Scene.Game == Game {
+  public init(world: Game.World, scene: some SceneType<Game>) {
     info = .init(
       script: .init(),
       world: world
