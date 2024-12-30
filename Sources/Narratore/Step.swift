@@ -6,10 +6,10 @@
 /// - the output is an instance of `Outcome<Game>`, used to decide what to do after processing a particular step.
 ///
 /// The wrapped function is naturally `async`, in order to properly interact with the `Handler`.
-public struct Step<Game: Setting> {
-  private var _apply: (inout Info<Game>, Handling<Game>) async -> Outcome<Game>
+public struct Step<Game: Setting>: Sendable {
+  private var _apply: @Sendable (inout Info<Game>, Handling<Game>) async -> Outcome<Game>
 
-  public init(apply: @escaping (inout Info<Game>, Handling<Game>) async -> Outcome<Game>) {
+  public init(apply: @escaping @Sendable (inout Info<Game>, Handling<Game>) async -> Outcome<Game>) {
     _apply = apply
   }
 
@@ -48,12 +48,13 @@ extension Step {
         return await firstOption.step.apply(info: &info, handling: handling)
       }
 
-      let playerOptions = choice.options.map {
-        Player<Game>.Option(
+      var playerOptions = [Player<Game>.Option]()
+      for option in choice.options {
+        await playerOptions.append(.init(
           id: Game.Generate.uniqueString(),
-          message: $0.message,
-          tags: $0.tags
-        )
+          message: option.message,
+          tags: option.tags
+        ))
       }
 
       let next = await handling.make(choice: .init(
@@ -76,16 +77,16 @@ extension Step {
         }
 
         info.script.append(choice: choice)
-        next.update?(&info.world)
+        await next.update?(&info.world)
 
         return await choice.options[optionIndex].step.apply(info: &info, handling: handling)
 
       case .replay:
-        next.update?(&info.world)
+        await next.update?(&info.world)
         return .replay
 
       case .stop:
-        next.update?(&info.world)
+        await next.update?(&info.world)
         return .stop
       }
     }
@@ -98,10 +99,10 @@ extension Step {
         validate: {
           switch textRequest.validate($0) {
           case .valid(let validated):
-            return .valid(.init(value: validated.text))
+            .valid(.init(value: validated.text))
 
           case .invalid(let message):
-            return .invalid(message)
+            .invalid(message)
           }
         },
         tags: textRequest.tags
@@ -111,17 +112,17 @@ extension Step {
       case .advance(let validatedText):
         info.script.append(textRequest: textRequest)
         info.script.append(narration: .init(messages: [.init(id: nil, text: validatedText.value)], tags: [], update: nil))
-        next.update?(&info.world)
+        await next.update?(&info.world)
 
-        let step = textRequest.getStep(.init(text: validatedText.value))
+        let step = await textRequest.getStep(.init(text: validatedText.value))
         return await step.apply(info: &info, handling: handling)
 
       case .replay:
-        next.update?(&info.world)
+        await next.update?(&info.world)
         return .replay
 
       case .stop:
-        next.update?(&info.world)
+        await next.update?(&info.world)
         return .stop
       }
     }
@@ -129,29 +130,28 @@ extension Step {
 
   public init(narration: Narration<Game>) {
     self.init { info, handling in
-      let next: Next<Game, Void>
-      if !narration.messages.isEmpty || !narration.tags.isEmpty {
-        next = await handling.acknowledge(narration: .init(
+      let next: Next<Game, Void> = if !narration.messages.isEmpty || !narration.tags.isEmpty {
+        await handling.acknowledge(narration: .init(
           messages: narration.messages,
           tags: narration.tags
         ))
       } else {
-        next = .advance
+        .advance
       }
-
-      defer { next.update?(&info.world) }
 
       switch next.action {
       case .advance:
         info.script.append(narration: narration)
-        narration.update?(&info.world)
-
+        await narration.update?(&info.world)
+        await next.update?(&info.world)
         return .advance(nil)
 
       case .replay:
+        await next.update?(&info.world)
         return .replay
 
       case .stop:
+        await next.update?(&info.world)
         return .stop
       }
     }
@@ -159,29 +159,28 @@ extension Step {
 
   public init(jump: Jump<Game>) {
     self.init { info, handling in
-      let next: Next<Game, Void>
-      if !jump.narration.messages.isEmpty || !jump.narration.tags.isEmpty {
-        next = await handling.acknowledge(narration: .init(
+      let next: Next<Game, Void> = if !jump.narration.messages.isEmpty || !jump.narration.tags.isEmpty {
+        await handling.acknowledge(narration: .init(
           messages: jump.narration.messages,
           tags: jump.narration.tags
         ))
       } else {
-        next = .advance
+        .advance
       }
-
-      defer { next.update?(&info.world) }
 
       switch next.action {
       case .advance:
         info.script.append(narration: jump.narration)
-        jump.narration.update?(&info.world)
-
+        await jump.narration.update?(&info.world)
+        await next.update?(&info.world)
         return .advance(jump.sceneChange)
 
       case .replay:
+        await next.update?(&info.world)
         return .replay
 
       case .stop:
+        await next.update?(&info.world)
         return .stop
       }
     }
@@ -189,22 +188,21 @@ extension Step {
 
   public init(update: @escaping Update<Game>) {
     self.init { info, _ in
-      update(&info.world)
-
+      await update(&info.world)
       return .advance(nil)
     }
   }
 }
 
 /// Wraps a function that allows to create a `Step` conditionally, given the game `Context`.
-public struct GetStep<Game: Setting> {
-  private var run: (Context<Game>) -> Step<Game>
+public struct GetStep<Game: Setting>: Sendable {
+  private var run: @Sendable (Context<Game>) async -> Step<Game>
 
-  public init(_ run: @escaping (Context<Game>) -> Step<Game>) {
+  public init(_ run: @escaping @Sendable (Context<Game>) async -> Step<Game>) {
     self.run = run
   }
 
-  public func callAsFunction(context: Context<Game>) -> Step<Game> {
-    run(context)
+  public func callAsFunction(context: Context<Game>) async -> Step<Game> {
+    await run(context)
   }
 }

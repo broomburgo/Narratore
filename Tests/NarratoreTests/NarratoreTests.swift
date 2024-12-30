@@ -1,31 +1,21 @@
+import Foundation
 import Narratore
-import XCTest
+import Testing
 
-class NarratoreTest: XCTestCase {
-  var testScene1_main = TestScene1(title: "testScene1_main")
-  var testScene1_other = TestScene1(title: "testScene1_other")
-  var testScene2_main = TestScene2(title: "testScene2_main")
-  var testScene2_other = TestScene2(title: "testScene2_other")
+struct NarratoreTest {
+  @Test func readRunnerScript() async {
+    nonisolated(unsafe) var values = TestValues()
 
-  override func setUp() {
-    super.setUp()
-    testScene1_main.updateSteps { "Test" }
-    testScene1_other.updateSteps { "Test" }
-    testScene2_main.updateSteps { "Test" }
-    testScene2_other.updateSteps { "Test" }
-  }
-
-  func testReadRunnerScript() async {
-    testScene1_main.updateSteps {
+    values.testScene1_main.updateSteps {
       "a"
 
-      check { _ in
+      DO.check { _ in
         .init(narration: .init(messages: [], tags: [], update: nil))
       }
 
       "b".with(id: "1")
 
-      check { _ in
+      DO.check { _ in
         .init(narration: .init(messages: [], tags: [], update: nil))
       }
 
@@ -33,27 +23,29 @@ class NarratoreTest: XCTestCase {
       "d"
     }
 
-    let runner = Runner<TestGame>.init(
+    let runner = Runner<TestGame>(
       handler: .mock(),
       status: .init(
         world: .init(),
-        scene: testScene1_main
+        scene: values.testScene1_main
       )
     )
     await runner.start()
 
     let story = await runner.info.script
-    XCTAssertEqual(story.narrated["1", default: 0], 1)
-    XCTAssertEqual(story.narrated["2", default: 0], 1)
-    XCTAssertEqual(story.words, ["a", "b", "c", "d"])
+    #expect(story.narrated["1", default: 0] == 1)
+    #expect(story.narrated["2", default: 0] == 1)
+    #expect(story.words == ["a", "b", "c", "d"])
   }
 
-  func testReadRunnerScriptWithTell() async {
-    testScene1_main.updateSteps {
+  @Test func readRunnerScriptWithTell() async {
+    nonisolated(unsafe) var values = TestValues()
+
+    values.testScene1_main.updateSteps {
       "a"
 
-      check { context in
-        tell {
+      DO.check { context in
+        .tell {
           "b".with(id: "1")
 
           if context.world.counter == 1 {
@@ -68,8 +60,8 @@ class NarratoreTest: XCTestCase {
 
       "d"
 
-      check { context in
-        tell(tags: ["a"]) {
+      DO.check { context in
+        .tell(tags: ["a"]) {
           "e".with(id: "2")
 
           if context.world.counter == 1 {
@@ -83,65 +75,69 @@ class NarratoreTest: XCTestCase {
       "g"
     }
 
-    let runner = Runner<TestGame>.init(
+    let runner = Runner<TestGame>(
       handler: .mock(),
       status: .init(
         world: .init(),
-        scene: testScene1_main
+        scene: values.testScene1_main
       )
     )
     await runner.start()
 
     let info = await runner.info
-    XCTAssertEqual(info.world.counter, 1)
-    XCTAssertEqual(info.script.narrated["1", default: 0], 1)
-    XCTAssertEqual(info.script.narrated["2", default: 0], 2)
-    XCTAssertEqual(info.script.words, ["a", "b", "c", "d", "e", "ee", "f", "g"])
+    #expect(info.world.counter == 1)
+    #expect(info.script.narrated["1", default: 0] == 1)
+    #expect(info.script.narrated["2", default: 0] == 2)
+    #expect(info.script.words == ["a", "b", "c", "d", "e", "ee", "f", "g"])
   }
 
-  func testReadRunnerWorld() async {
-    testScene1_main.updateSteps {
+  @Test func readRunnerWorld() async {
+    nonisolated(unsafe) var values = TestValues()
+
+    values.testScene1_main.updateSteps {
       "a"
-      update {
+      DO.update {
         $0.counter += 1
       }
       "b"
     }
 
-    let runner = Runner<TestGame>.init(
+    let runner = Runner<TestGame>(
       handler: .mock(),
       status: .init(
         world: .init(),
-        scene: testScene1_main
+        scene: values.testScene1_main
       )
     )
     await runner.start()
 
     let world = await runner.info.world
-    XCTAssertEqual(world.counter, 1)
+    #expect(world.counter == 1)
   }
 
-  func testBasicHandledEvents() async {
-    testScene1_main.updateSteps {
+  @Test func basicHandledEvents() async {
+    nonisolated(unsafe) var values = TestValues()
+
+    values.testScene1_main.updateSteps {
       "a"
       "b".with(id: "1")
       "c".with(id: "2")
       "d"
     }
 
-    var finalStatus: Status<TestGame>?
-    var gameStartedCount = 0
-    var gameEndedCount = 0
+    nonisolated(unsafe) var finalStatus: Status<TestGame>?
+    nonisolated(unsafe) var gameStartedCount = 0
+    nonisolated(unsafe) var gameEndedCount = 0
 
-    await Runner<TestGame>.init(
+    await Runner<TestGame>(
       handler: .mock(
-        handleEvent: {
+        handleEvent: { @Sendable in
           switch $0 {
           case .statusUpdated(let status):
             finalStatus = status
 
           case .errorProduced(let error):
-            XCTFail("\(error)")
+            Issue.record(error)
 
           case .gameEnded:
             gameEndedCount += 1
@@ -153,136 +149,154 @@ class NarratoreTest: XCTestCase {
       ),
       status: .init(
         world: .init(),
-        scene: testScene1_main
+        scene: values.testScene1_main
       )
     ).start()
 
-    XCTAssertEqual(gameStartedCount, 1)
-    XCTAssertEqual(gameEndedCount, 1)
-    XCTAssertNotNil(finalStatus)
-    XCTAssertEqual(finalStatus!.info.world.counter, 0)
-    XCTAssertEqual(finalStatus!.info.script.words, ["a", "b", "c", "d"])
-    XCTAssertEqual(finalStatus!.info.script.narrated, ["1": 1, "2": 1])
+    #expect(gameStartedCount == 1)
+    #expect(gameEndedCount == 1)
+    #expect(finalStatus != nil)
+    #expect(finalStatus!.info.world.counter == 0)
+    #expect(finalStatus!.info.script.words == ["a", "b", "c", "d"])
+    #expect(finalStatus!.info.script.narrated == ["1": 1, "2": 1])
   }
 
-  func testBasicSceneJump() async {
-    testScene1_main.updateSteps {
+  @Test func basicSceneJump() async {
+    nonisolated(unsafe) var values = TestValues()
+
+    values.testScene1_main.updateSteps {
       "a"
       "b"
-      then { .transitionTo(self.testScene2_main) }
+      DO.then { .transitionTo(values.testScene2_main) }
     }
 
-    testScene2_main.updateSteps {
+    values.testScene2_main.updateSteps {
       "c"
       "d"
     }
 
-    let runner = Runner<TestGame>.init(
+    let runner = Runner<TestGame>(
       handler: .mock(),
       status: .init(
         world: .init(),
-        scene: testScene1_main
+        scene: values.testScene1_main
       )
     )
     await runner.start()
 
     let story = await runner.info.script
-    XCTAssertEqual(story.words, ["a", "b", "c", "d"])
+    #expect(story.words == ["a", "b", "c", "d"])
   }
 
-  func testBasicChoice() async {
-    testScene1_main.updateSteps {
+  @Test func basicChoice() async {
+    nonisolated(unsafe) var values = TestValues()
+
+    values.testScene1_main.updateSteps {
       "a"
-      choose { _ in
+      DO.choose { _ in
         "* 1".onSelect {
-          "b"
-            .with(id: "b is selected")
-            .then { .transitionTo(self.testScene2_main) }
+          .tell {
+            "b"
+              .with(id: "b is selected")
+          } then: {
+            .transitionTo(values.testScene2_main)
+          }
         }
 
         "* 2".onSelect {
-          "c"
-            .with(id: "c is selected")
-            .then { .transitionTo(self.testScene2_other) }
+          .tell {
+            "c"
+              .with(id: "c is selected")
+          } then: {
+            .transitionTo(values.testScene2_other)
+          }
         }
 
         "* 3".onSelect {
-          "d".then { .transitionTo(self.testScene2_other) }
+          .tell { "d" } then: { .transitionTo(values.testScene2_other) }
         }
       }
     }
 
-    testScene2_main.updateSteps {
+    values.testScene2_main.updateSteps {
       "c"
       "d"
     }
 
-    let runner = Runner<TestGame>.init(
+    let runner = Runner<TestGame>(
       handler: .mock(),
       status: .init(
         world: .init(),
-        scene: testScene1_main
+        scene: values.testScene1_main
       )
     )
     await runner.start()
 
     let story = await runner.info.script
-    XCTAssertEqual(story.words, ["a", "b", "c", "d"])
-    XCTAssertEqual(story.narrated["b is selected", default: 0], 1)
-    XCTAssertEqual(story.narrated["c is selected", default: 0], 0)
+    #expect(story.words == ["a", "b", "c", "d"])
+    #expect(story.narrated["b is selected", default: 0] == 1)
+    #expect(story.narrated["c is selected", default: 0] == 0)
   }
 
-  func testBasicCheck() async {
-    testScene1_main.updateSteps {
+  @Test func basicCheck() async {
+    nonisolated(unsafe) var values = TestValues()
+
+    values.testScene1_main.updateSteps {
       "a"
 
-      update {
+      DO.update {
         $0.counter = 10
       }
 
-      check {
-        if $0.world.counter == 10 {
-          "b"
-            .with { $0.counter -= 1 }
-            .then { .transitionTo(self.testScene2_main) }
+      DO.check {
+        .inCase($0.world.counter == 10) {
+          .tell {
+            "b"
+          } update: {
+            $0.counter -= 1
+          } then: {
+            .transitionTo(values.testScene2_main)
+          }
         }
       }
     }
 
-    testScene2_main.updateSteps {
+    values.testScene2_main.updateSteps {
       "c"
 
-      check {
+      DO.check {
         if $0.world.counter == 9 {
-          "d".with { $0.counter -= 1 }
+          .tell { "d" } update: { $0.counter -= 1 }
         } else {
-          "e"
+          .tell { "e" }
         }
       }
     }
 
-    let runner = Runner<TestGame>.init(
+    let runner = Runner<TestGame>(
       handler: .mock(),
       status: .init(
         world: .init(),
-        scene: testScene1_main
+        scene: values.testScene1_main
       )
     )
     await runner.start()
 
     let info = await runner.info
-    XCTAssertEqual(info.script.words, ["a", "b", "c", "d"])
-    XCTAssertEqual(info.world.counter, 8)
+    #expect(info.script.words == ["a", "b", "c", "d"])
+    #expect(info.world.counter == 8)
   }
 
-  func testForcedUpdate() async {
-    testScene1_main.updateSteps {
+  @Test func forcedUpdate() async {
+    nonisolated(unsafe) var values = TestValues()
+
+    values.testScene1_main.updateSteps {
       "a"
       "b"
 
-      check {
-        if $0.world.counter == 7 {
-          "c"
+      DO.check {
+        .inCase($0.world.counter == 7) {
+          .tell { "c" }
         }
       }
 
@@ -290,8 +304,8 @@ class NarratoreTest: XCTestCase {
     }
 
     var runner: Runner<TestGame>?
-    runner = Runner<TestGame>.init(
-      handler: .mock(acknowledgeNarration: {
+    runner = Runner<TestGame>(
+      handler: .mock(acknowledgeNarration: { @Sendable in
         if $0.messages.map(\.text) == ["b"] {
           return .advance {
             $0.counter = 7
@@ -301,56 +315,74 @@ class NarratoreTest: XCTestCase {
       }),
       status: .init(
         world: .init(),
-        scene: testScene1_main
+        scene: values.testScene1_main
       )
     )
     await runner!.start()
 
     let info = await runner!.info
-    XCTAssertEqual(info.script.words, ["a", "b", "c", "d"])
-    XCTAssertEqual(info.world.counter, 7)
+    #expect(info.script.words == ["a", "b", "c", "d"])
+    #expect(info.world.counter == 7)
   }
 
-  func testReturnToChoiceWithUpdate() async {
-    testScene1_main.updateSteps {
+  @Test func returnToChoiceWithUpdate() async {
+    nonisolated(unsafe) var values = TestValues()
+
+    values.testScene1_main.updateSteps {
       "a"
       "b"
-      then { .transitionTo(self.testScene1_other) }
+      DO.then { .transitionTo(values.testScene1_other) }
     }
 
-    testScene1_other.updateSteps {
+    values.testScene1_other.updateSteps {
       "c"
       "d".with(anchor: "return")
       "e"
 
-      choose {
+      DO.choose {
         if $0.world.counter < 1 {
           "f".onSelect {
-            "f"
-              .with { $0.counter += 1 }
-              .then { .replaceWith(self.testScene1_other, at: "return") }
+            .tell {
+              "f"
+            } update: {
+              $0.counter += 1
+            } then: {
+              .replaceWith(values.testScene1_other, at: "return")
+            }
           }
         }
 
         if $0.world.counter < 2 {
           "g".onSelect {
-            "g"
-              .with { $0.counter += 1 }
-              .then { .replaceWith(self.testScene1_other, at: "return") }
+            .tell {
+              "g"
+            } update: {
+              $0.counter += 1
+            } then: {
+              .replaceWith(values.testScene1_other, at: "return")
+            }
           }
         }
 
         if $0.world.counter < 3 {
           "h".onSelect {
-            "h"
-              .with { $0.counter += 1 }
-              .then { .replaceWith(self.testScene1_other, at: "return") }
+            .tell {
+              "h"
+            } update: {
+              $0.counter += 1
+            } then: {
+              .replaceWith(values.testScene1_other, at: "return")
+            }
           }
         }
 
         if $0.world.counter < 4 {
           "i".onSelect {
-            "i".then { .replaceWith(self.testScene1_other, at: "continue") }
+            .tell {
+              "i"
+            } then: {
+              .replaceWith(values.testScene1_other, at: "continue")
+            }
           }
         }
       }
@@ -359,18 +391,18 @@ class NarratoreTest: XCTestCase {
       "k"
     }
 
-    let runner = Runner<TestGame>.init(
+    let runner = Runner<TestGame>(
       handler: .mock(),
       status: .init(
         world: .init(),
-        scene: testScene1_main
+        scene: values.testScene1_main
       )
     )
     await runner.start()
 
     let info = await runner.info
-    XCTAssertEqual(info.world.counter, 3)
-    XCTAssertEqual(info.script.words, [
+    #expect(info.world.counter == 3)
+    #expect(info.script.words == [
       "a",
       "b",
       "c",
@@ -391,61 +423,63 @@ class NarratoreTest: XCTestCase {
     ])
   }
 
-  func testReturnToChoiceWithUpdateAndSimpleStep() async {
-    testScene2_main.updateSteps {
+  @Test func returnToChoiceWithUpdateAndSimpleStep() async {
+    nonisolated(unsafe) var values = TestValues()
+
+    values.testScene2_main.updateSteps {
       "a"
       "b".with(anchor: "return")
       "c"
 
-      choose {
+      DO.choose {
         if $0.world.counter < 1 {
           "d".onSelect {
-            "d".with { $0.counter += 1 }
+            .tell { "d" } update: { $0.counter += 1 }
           }
         }
 
         if $0.world.counter < 2 {
           "e".onSelect {
-            "e".with { $0.counter += 1 }
+            .tell { "e" } update: { $0.counter += 1 }
           }
         }
 
         if $0.world.counter < 3 {
           "f".onSelect {
-            "f".with { $0.counter += 1 }
+            .tell { "f" } update: { $0.counter += 1 }
           }
         }
 
         if $0.world.counter < 4 {
           "g".onSelect {
-            "g".with { $0.counter += 1 }
+            .tell { "g" } update: { $0.counter += 1 }
           }
         }
       }
 
-      check {
+      DO.check {
         if $0.world.counter < 4 {
-          "h".then { .replaceWith(self.testScene2_main, at: "return") }
+          .tell { "h" } then: { .replaceWith(values.testScene2_main, at: "return") }
         } else {
-          "h"
+          .tell { "h" }
         }
       }
 
       "i"
     }
 
-    let runner = Runner<TestGame>.init(
+    let runner = Runner<TestGame>(
       handler: .mock(),
       status: .init(
         world: .init(),
-        scene: testScene2_main
+        scene: values.testScene2_main
       )
     )
     await runner.start()
 
     let info = await runner.info
-    XCTAssertEqual(info.world.counter, 4)
-    XCTAssertEqual(info.script.words, [
+    #expect(info.world.counter == 4)
+    #expect(info.script.words == [
       "a",
       "b",
       "c",
@@ -467,40 +501,42 @@ class NarratoreTest: XCTestCase {
     ])
   }
 
-  func testRunThrough() async {
-    testScene1_main.updateSteps {
+  @Test func runThrough() async {
+    nonisolated(unsafe) var values = TestValues()
+
+    values.testScene1_main.updateSteps {
       "1_1"
       "1_2"
       "1_3"
     }
 
-    testScene1_other.updateSteps {
+    values.testScene1_other.updateSteps {
       "2_1"
       "2_2"
       "2_3"
     }
 
-    testScene2_main.updateSteps {
+    values.testScene2_main.updateSteps {
       "a"
       "b".with(anchor: "return")
 
-      check {
+      DO.check {
         if $0.world.counter == 0 {
-          "c"
-            .with { $0.counter += 1 }
-            .then { .runThrough(self.testScene1_main) }
+          .tell { "c" }
+            update: { $0.counter += 1 }
+            then: { .runThrough(values.testScene1_main) }
         } else {
-          "d"
-            .with { $0.counter += 1 }
-            .then { .runThrough(self.testScene1_other) }
+          .tell { "d" }
+            update: { $0.counter += 1 }
+            then: { .runThrough(values.testScene1_other) }
         }
       }
 
       "e"
 
-      check {
-        if $0.world.counter < 2 {
-          "f".then { .replaceWith(self.testScene2_main, at: "return") }
+      DO.check {
+        .inCase($0.world.counter < 2) {
+          .tell { "f" } then: { .replaceWith(values.testScene2_main, at: "return") }
         }
       }
 
@@ -508,18 +544,18 @@ class NarratoreTest: XCTestCase {
       "h"
     }
 
-    let runner = Runner<TestGame>.init(
+    let runner = Runner<TestGame>(
       handler: .mock(),
       status: .init(
         world: .init(),
-        scene: testScene2_main
+        scene: values.testScene2_main
       )
     )
     await runner.start()
 
     let info = await runner.info
-    XCTAssertEqual(info.world.counter, 2)
-    XCTAssertEqual(info.script.words, [
+    #expect(info.world.counter == 2)
+    #expect(info.script.words == [
       "a",
       "b",
       "c",
@@ -539,44 +575,48 @@ class NarratoreTest: XCTestCase {
     ])
   }
 
-  func testRunThroughAndReplaceWith() async {
-    testScene1_main.updateSteps {
+  @Test func runThroughAndReplaceWith() async {
+    nonisolated(unsafe) var values = TestValues()
+
+    values.testScene1_main.updateSteps {
       "a"
       "b"
 
       "c"
-      then { .runThrough(self.testScene1_other) }
+      DO.then { .runThrough(values.testScene1_other) }
 
       "d"
       "e"
     }
 
-    testScene1_other.updateSteps {
+    values.testScene1_other.updateSteps {
       "f"
       "g".with(anchor: "continue")
       "h"
-      check {
-        if $0.script.narrated["did see i", default: 0] == 0 {
-          "i"
-            .with(id: "did see i")
-            .then { .replaceWith(self.testScene1_other, at: "continue") }
+      DO.check {
+        .inCase($0.script.narrated["did see i", default: 0] == 0) {
+          .tell {
+            "i".with(id: "did see i")
+          } then: {
+            .replaceWith(values.testScene1_other, at: "continue")
+          }
         }
       }
       "j"
       "k"
     }
 
-    let runner = Runner<TestGame>.init(
+    let runner = Runner<TestGame>(
       handler: .mock(),
       status: .init(
         world: .init(),
-        scene: testScene1_main
+        scene: values.testScene1_main
       )
     )
     await runner.start()
 
     let info = await runner.info
-    XCTAssertEqual(info.script.words, [
+    #expect(info.script.words == [
       "a",
       "b",
       "c",
@@ -593,44 +633,48 @@ class NarratoreTest: XCTestCase {
     ])
   }
 
-  func testRunThroughAndTransitionTo() async {
-    testScene1_main.updateSteps {
+  @Test func runThroughAndTransitionTo() async {
+    nonisolated(unsafe) var values = TestValues()
+
+    values.testScene1_main.updateSteps {
       "a"
       "b"
 
       "c"
-      then { .runThrough(self.testScene1_other) }
+      DO.then { .runThrough(values.testScene1_other) }
 
       "d"
       "e"
     }
 
-    testScene1_other.updateSteps {
+    values.testScene1_other.updateSteps {
       "f"
       "g".with(anchor: "continue")
       "h"
-      check {
-        if $0.script.narrated["did see i", default: 0] == 0 {
-          "i"
-            .with(id: "did see i")
-            .then { .transitionTo(self.testScene1_other, at: "continue") }
+      DO.check {
+        .inCase($0.script.narrated["did see i", default: 0] == 0) {
+          .tell {
+            "i".with(id: "did see i")
+          } then: {
+            .transitionTo(values.testScene1_other, at: "continue")
+          }
         }
       }
       "j"
       "k"
     }
 
-    let runner = Runner<TestGame>.init(
+    let runner = Runner<TestGame>(
       handler: .mock(),
       status: .init(
         world: .init(),
-        scene: testScene1_main
+        scene: values.testScene1_main
       )
     )
     await runner.start()
 
     let info = await runner.info
-    XCTAssertEqual(info.script.words, [
+    #expect(info.script.words == [
       "a",
       "b",
       "c",
@@ -645,17 +689,19 @@ class NarratoreTest: XCTestCase {
     ])
   }
 
-  func testReplayNotAffectScript() async {
-    testScene1_main.updateSteps {
+  @Test func replayNotAffectScript() async {
+    nonisolated(unsafe) var values = TestValues()
+
+    values.testScene1_main.updateSteps {
       "a"
       "b"
       "c"
     }
 
-    var didReplay = false
+    nonisolated(unsafe) var didReplay = false
 
-    let runner = Runner<TestGame>.init(
-      handler: .mock(acknowledgeNarration: {
+    let runner = Runner<TestGame>(
+      handler: .mock(acknowledgeNarration: { @Sendable in
         if !didReplay, $0.messages.map(\.text) == ["b"] {
           didReplay = true
           return .replay
@@ -665,108 +711,116 @@ class NarratoreTest: XCTestCase {
       }),
       status: .init(
         world: .init(),
-        scene: testScene1_main
+        scene: values.testScene1_main
       )
     )
     await runner.start()
 
     let info = await runner.info
-    XCTAssertEqual(info.script.words, ["a", "b", "c"])
+    #expect(info.script.words == ["a", "b", "c"])
   }
 
-  func testReplayWithChange() async {
-    testScene1_main.updateSteps {
+  @Test func replayWithChange() async {
+    nonisolated(unsafe) var values = TestValues()
+
+    values.testScene1_main.updateSteps {
       "a"
-      check {
+      DO.check {
         if $0.world.counter == 0 {
-          "b"
+          .tell { "b" }
         } else {
-          "c"
+          .tell { "c" }
         }
       }
       "d"
     }
 
-    let runner = Runner<TestGame>.init(
-      handler: .mock(acknowledgeNarration: {
+    let runner = Runner<TestGame>(
+      handler: .mock(acknowledgeNarration: { @Sendable in
         if $0.messages.map(\.text) == ["b"] {
-          return .replay {
+          .replay {
             $0.counter += 1
           }
         } else {
-          return .advance
+          .advance
         }
       }),
       status: .init(
         world: .init(),
-        scene: testScene1_main
+        scene: values.testScene1_main
       )
     )
     await runner.start()
 
     let info = await runner.info
-    XCTAssertEqual(info.script.words, ["a", "c", "d"])
+    #expect(info.script.words == ["a", "c", "d"])
   }
 
-  func testStopNotAffectScript() async {
-    testScene1_main.updateSteps {
+  @Test func stopNotAffectScript() async {
+    nonisolated(unsafe) var values = TestValues()
+
+    values.testScene1_main.updateSteps {
       "a"
       "b"
       "c"
     }
 
-    let runner = Runner<TestGame>.init(
-      handler: .mock(acknowledgeNarration: {
+    let runner = Runner<TestGame>(
+      handler: .mock(acknowledgeNarration: { @Sendable in
         if $0.messages.map(\.text) == ["b"] {
-          return .stop
+          .stop
         } else {
-          return .advance
+          .advance
         }
       }),
       status: .init(
         world: .init(),
-        scene: testScene1_main
+        scene: values.testScene1_main
       )
     )
     await runner.start()
 
     let info = await runner.info
-    XCTAssertEqual(info.script.words, ["a"])
+    #expect(info.script.words == ["a"])
   }
 
-  func testSceneChangeShorthand() async {
-    testScene1_main.updateSteps {
+  @Test func sceneChangeShorthand() async {
+    nonisolated(unsafe) var values = TestValues()
+
+    values.testScene1_main.updateSteps {
       "a"
-      check {
-        if $0.script.narrated["did see b", default: 0] == 0 {
-          "b"
-            .with(id: "did see b")
-            .then { .replaceWith(self.testScene2_main) }
+      DO.check {
+        .inCase($0.script.narrated["did see b", default: 0] == 0) {
+          .tell {
+            "b".with(id: "did see b")
+          } then: {
+            .replaceWith(values.testScene2_main)
+          }
         }
       }
       "c"
     }
 
-    testScene2_main.updateSteps {
+    values.testScene2_main.updateSteps {
       "d"
       "e"
-      then { .runThrough(self.testScene1_main) }
+      DO.then { .runThrough(values.testScene1_main) }
       "f"
       "g"
-      then { .transitionTo(self.testScene1_main) }
+      DO.then { .transitionTo(values.testScene1_main) }
     }
 
-    let runner = Runner<TestGame>.init(
+    let runner = Runner<TestGame>(
       handler: .mock(),
       status: .init(
         world: .init(),
-        scene: testScene1_main
+        scene: values.testScene1_main
       )
     )
     await runner.start()
 
     let info = await runner.info
-    XCTAssertEqual(info.script.words, [
+    #expect(info.script.words == [
       "a",
       "b",
       "d",
@@ -780,45 +834,47 @@ class NarratoreTest: XCTestCase {
     ])
   }
 
-  func testObserveTags() async {
-    testScene1_main.updateSteps {
+  @Test func observeTags() async {
+    nonisolated(unsafe) var values = TestValues()
+
+    values.testScene1_main.updateSteps {
       "a"
       "b".with(tags: ["observe-1"])
       "c"
       "d".with(tags: ["not-observe-1"])
       "e"
-      choose(tags: ["observe-choice"]) { _ in
+      DO.choose(tags: ["observe-choice"]) { _ in
         "* 1".onSelect(tags: ["not-observe-1"]) {
-          "* 1".then { .transitionTo(self.testScene2_main) }
+          .tell { "* 1" } then: { .transitionTo(values.testScene2_main) }
         }
 
         "* 2".onSelect(tags: ["observe-1"]) {
-          "* 2".then { .transitionTo(self.testScene2_main) }
+          .tell { "* 2" } then: { .transitionTo(values.testScene2_main) }
         }
       }
     }
 
-    let runner = Runner<TestGame>.init(
+    let runner = Runner<TestGame>(
       handler: .mock(),
       status: .init(
         world: .init(),
-        scene: testScene1_main
+        scene: values.testScene1_main
       )
     )
     await runner.start()
 
     let info = await runner.info
 
-    XCTAssertEqual(info.script.observed["observe-1", default: 0], 2)
-    XCTAssertEqual(info.script.observed["not-observe-1", default: 0], 0)
-    XCTAssertEqual(info.script.observed["observe-choice", default: 0], 1)
+    #expect(info.script.observed["observe-1", default: 0] == 2)
+    #expect(info.script.observed["not-observe-1", default: 0] == 0)
+    #expect(info.script.observed["observe-choice", default: 0] == 1)
   }
 
-  func testEncodeDecode() async throws {
+  @Test func encodeDecode() async throws {
     enum LocalTestGame: Story {
       enum Generate: Generating {
-        static var expectedRandomRatio: Double = 0.5
-        static var expectedUniqueString: String = "expected"
+        nonisolated(unsafe) static var expectedRandomRatio: Double = 0.5
+        nonisolated(unsafe) static var expectedUniqueString: String = "expected"
 
         static func randomRatio() -> Double {
           expectedRandomRatio
@@ -840,7 +896,7 @@ class NarratoreTest: XCTestCase {
         var counter = 0
       }
 
-      static var scenes: [RawScene<LocalTestGame>] = [LocalTestScene1.raw, LocalTestScene2.raw]
+      static let scenes: [RawScene<LocalTestGame>] = [LocalTestScene1.raw, LocalTestScene2.raw]
     }
 
     struct LocalTestScene1: SceneType {
@@ -850,7 +906,7 @@ class NarratoreTest: XCTestCase {
         "a"
         "b"
         "c"
-        then { .runThrough(LocalTestScene2()) }
+        DO.then { .runThrough(LocalTestScene2()) }
         "d"
         "e"
       }
@@ -866,7 +922,7 @@ class NarratoreTest: XCTestCase {
       }
     }
 
-    var status: Status<LocalTestGame>!
+    nonisolated(unsafe) var status: Status<LocalTestGame>!
 
     let runner1 = Runner<LocalTestGame>.init(
       handler: Handling<LocalTestGame>(
@@ -877,7 +933,7 @@ class NarratoreTest: XCTestCase {
           return .advance
         },
         makeChoice: { $0.options.first.map { .advance(with: $0) } ?? .stop },
-        answerRequest: { _ in XCTFail("shouldn't be here"); return .stop },
+        answerRequest: { _ in Issue.record("shouldn't be here"); return .stop },
         handleEvent: {
           if case .statusUpdated(let newStatus) = $0 {
             status = newStatus
@@ -894,7 +950,7 @@ class NarratoreTest: XCTestCase {
     let encoded = try JSONEncoder().encode(status)
     let decoded = try JSONDecoder().decode(Status<LocalTestGame>.self, from: encoded)
 
-    var narratedByRunner2: [String] = []
+    nonisolated(unsafe) var narratedByRunner2: [String] = []
 
     let runner2 = Runner<LocalTestGame>.init(
       handler: Handling<LocalTestGame>(
@@ -905,7 +961,7 @@ class NarratoreTest: XCTestCase {
           return .advance
         },
         makeChoice: { $0.options.first.map { .advance(with: $0) } ?? .stop },
-        answerRequest: { _ in XCTFail("shouldn't be here"); return .stop },
+        answerRequest: { _ in Issue.record("shouldn't be here"); return .stop },
         handleEvent: { _ in }
       ),
       status: decoded
@@ -915,53 +971,69 @@ class NarratoreTest: XCTestCase {
     let info1 = await runner1.info
     let info2 = await runner2.info
 
-    XCTAssertEqual(info1.script.words, ["a", "b", "c", "1"])
-    XCTAssertEqual(info2.script.words, ["a", "b", "c", "1", "2", "3", "d", "e"])
-    XCTAssertEqual(narratedByRunner2, ["2", "3", "d", "e"])
+    #expect(info1.script.words == ["a", "b", "c", "1"])
+    #expect(info2.script.words == ["a", "b", "c", "1", "2", "3", "d", "e"])
+    #expect(narratedByRunner2 == ["2", "3", "d", "e"])
   }
 
-  func testRequestText() async {
-    var receivedText: String?
+  @Test func verifyRequestText() async {
+    nonisolated(unsafe) var values = TestValues()
 
-    testScene1_main.updateSteps {
+    nonisolated(unsafe) var receivedText: String?
+
+    values.testScene1_main.updateSteps {
       "a"
 
-      requestText {
+      DO.requestText {
         "b"
       } validate: {
         receivedText = $0
         return .valid(.init(text: $0))
       } ifValid: { _, _ in
-        "d"
+        .tell { "d" }
       }
 
       "e"
     }
 
-    var receivedRequest: TestPlayer.TextRequest?
+    nonisolated(unsafe) var receivedRequest: TestPlayer.TextRequest?
 
-    let runner = Runner<TestGame>.init(
-      handler: .mock(answerRequest: {
+    let runner = Runner<TestGame>(
+      handler: .mock(answerRequest: { @Sendable in
         receivedRequest = $0
         switch $0.validate("c") {
         case .valid(let validated):
           return .advance(with: validated)
 
         case .invalid(let message):
-          XCTFail("shouldn't fail (\(message ?? .init(text: "nil")))")
+          Issue.record("shouldn't fail (\(message ?? .init(text: "nil")))")
           return .stop
         }
       }),
       status: .init(
         world: .init(),
-        scene: testScene1_main
+        scene: values.testScene1_main
       )
     )
     await runner.start()
 
     let story = await runner.info.script
-    XCTAssertEqual(story.words, ["a", "b", "c", "d", "e"])
-    XCTAssertEqual(receivedText, "c")
-    XCTAssertEqual(receivedRequest?.message?.text, "b")
+    #expect(story.words == ["a", "b", "c", "d", "e"])
+    #expect(receivedText == "c")
+    #expect(receivedRequest?.message?.text == "b")
+  }
+}
+
+private struct TestValues {
+  var testScene1_main = TestScene1(title: "values.testScene1_main")
+  var testScene1_other = TestScene1(title: "values.testScene1_other")
+  var testScene2_main = TestScene2(title: "values.testScene2_main")
+  var testScene2_other = TestScene2(title: "values.testScene2_other")
+
+  init() {
+    testScene1_main.updateSteps { "Test" }
+    testScene1_other.updateSteps { "Test" }
+    testScene2_main.updateSteps { "Test" }
+    testScene2_other.updateSteps { "Test" }
   }
 }

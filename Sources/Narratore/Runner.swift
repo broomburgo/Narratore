@@ -56,7 +56,7 @@ public actor Runner<Game: Setting> {
     }
 
     let getStep = getSteps[sceneStatus.currentStepIndex]
-    let step = getStep(context: .init(
+    let step = await getStep(context: .init(
       generate: .init(),
       script: status.info.script,
       world: status.info.world
@@ -106,12 +106,12 @@ public actor Runner<Game: Setting> {
 }
 
 /// Contains the full encodable status of the `Game`, that can be used to restore it when needed.
-public struct Status<Game: Setting>: Encodable {
+public struct Status<Game: Setting>: Encodable, Sendable {
   public internal(set) var info: Info<Game>
   public internal(set) var sceneStack: [SceneStatus<Game>]
 
   /// Create a initial `Status` for a certain `World` instance and `Scene`.
-  public init<Scene>(world: Game.World, scene: Scene) where Scene: SceneType, Scene.Game == Game {
+  public init(world: Game.World, scene: some SceneType<Game>) {
     info = .init(
       script: .init(),
       world: world
@@ -128,13 +128,13 @@ public struct Status<Game: Setting>: Encodable {
 extension Status: Decodable where Game: Story {}
 
 /// Contains the public readable info about a `Game`, that is, the `Script` and the state of the `World`.
-public struct Info<Game: Setting>: Codable {
+public struct Info<Game: Setting>: Codable, Sendable {
   public internal(set) var script: Script<Game>
   public internal(set) var world: Game.World
 }
 
 /// The state of a specific scene in the stack.
-public struct SceneStatus<Game: Setting>: Encodable {
+public struct SceneStatus<Game: Setting>: Encodable, Sendable {
   public internal(set) var currentStepIndex: Int
   public internal(set) var section: Section<Game>
 }
@@ -142,17 +142,19 @@ public struct SceneStatus<Game: Setting>: Encodable {
 extension SceneStatus: Decodable where Game: Story {}
 
 /// Passed to the `GetStep` function, to create a `Step`.
-public struct Context<Game: Setting> {
+public struct Context<Game: Setting>: Sendable {
   public let generate: Generate<Game>
   public let script: Script<Game>
   public let world: Game.World
 }
 
 /// A convenience `struct` that wraps to functionality of `Generate`.
-public struct Generate<Game: Setting> {
-  public let randomRatio: () -> Double
+public struct Generate<Game: Setting>: Sendable {
+  public let randomRatio: @Sendable () async -> Double
+  public let uniqueString: @Sendable () async -> String
 
   init() {
-    randomRatio = { Game.Generate.randomRatio() }
+    randomRatio = { await Game.Generate.randomRatio() }
+    uniqueString = { await Game.Generate.uniqueString() }
   }
 }

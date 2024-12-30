@@ -23,7 +23,7 @@ Each associated type has additional requirements, let's see them in detail.
 
 ## Generate
 
-The purpose of the `Generate` type is to provide a game `Setting` with an integrated system to generate values (for example, random numbers). The type must conform to the `Generate` protocol, that currently only requires a static function to produce a random ratio between 0 and 1, and a static function to produce a unique string: the protocol could be expanded in the future with extra requirements, like a function to generate progressive integers, or a function to hash a string.
+The purpose of the `Generate` type is to provide a game `Setting` with an integrated system to generate values (for example, random numbers). The type must conform to the `Generating` protocol, that currently only requires a static function to produce a random ratio between 0 and 1, and a static function to produce a unique string: the protocol could be expanded in the future with extra requirements, like a function to generate progressive integers, or a function to hash a string.
 
 For testing purposes, it can be useful to give a `Generate` type some way to fix the values that are going to be produced, for example to control randomness.
 
@@ -33,26 +33,40 @@ Here's possible `Generate` definition for our `SimpleSetting`:
 public enum SimpleSetting: Setting {
   ...
   public enum Generate: Generating {
-    public static var getFixedRandomRatio: (() -> Double)? = nil
-    public static var getFixedUniqueString: (() -> String)? = nil
+    public actor Fixed {
+      public static let shared = Fixed()
 
-    public static func randomRatio() -> Double {
-      getFixedRandomRatio?() ?? Double((0...1000).randomElement()!)/1000
+      public var randomRatio: Double?
+      public var uniqueString: String?
+
+      public func set(randomRatio: Double?) {
+        self.randomRatio = randomRatio
+      }
+
+      public func set(uniqueString: String?) {
+        self.uniqueString = uniqueString
+      }
     }
-    
-    public static func uniqueString() -> String {
-      getFixedUniqueString?() ?? UUID().uuidString
+
+    public static func randomRatio() async -> Double {
+      await Fixed.shared.randomRatio ?? Double((0...1000).randomElement()!) / 1000
     }
-  }  
+
+    public static func uniqueString() async -> String {
+      await Fixed.shared.uniqueString ?? UUID().uuidString
+    }
+  }
 }
 ```
+
+Thanks to the fact that the required functions can be `async`, we can use an `actor` to safely store fixed values for testing purposes.
 
 ## Message
 
 A message can be as simple as a `String`, but thanks to the fact that in `Narratore` a `Message` is a generic type, it's possible to obtain more sophisticated results, for example attaching the message to a character, or handling story localization in a convenient way.
 
 The `Message` associated type is expected to conform to the `Messaging` protocol, that declares some requirements:
-- it must be `Codable & CustomStringConvertible`;
+- it must be `Codable` and `CustomStringConvertible`;
 - it must define an `ID` associated type;
 - it must have 2 properties, `text: String` and `id: ID?`;
 - it must be constructible with a specific initializer.
@@ -64,20 +78,24 @@ In order to continue defining our `SimpleSetting`, let's define a `SimpleMessage
 ```swift
 public enum SimpleSetting: Setting {
   ...  
-  public struct Message: Messaging {
+  public struct Message: Messaging, ExpressibleByStringLiteral {
     public var id: ID?
     public var text: String
-    
+
     public init(id: ID?, text: String) {
       self.id = id
       self.text = text
     }
-    
-    public struct ID: Hashable & Codable & ExpressibleByStringLiteral & CustomStringConvertible {
+
+    public init(stringLiteral value: String) {
+      self.init(id: nil, text: value)
+    }
+
+    public struct ID: Hashable, Codable, Sendable, ExpressibleByStringLiteral, CustomStringConvertible {
       public var description: String
-      
+
       public init(stringLiteral value: String) {
-        self.description = value
+        description = value
       }
     }
   }
@@ -87,26 +105,28 @@ public enum SimpleSetting: Setting {
 
 Instead of simply using `String` for the `associatedtype ID`, we defined a basic `ID` type that can essentially be created from and transformed to a `String`. The advantage of specifying a type is that we'll be able to extend this and give it more power if it's needed. Defining a specific type for something instead of using a `typealias` is the more flexible option, but it requires a small amount of boilerplate (`ID` in fact is essentially wrapping of `String` not much more).
 
+We also conformed `Message` to `ExpressibleByStringLiteral`, so it can be easily produced from a `String` in cases were the `DSL` won't help us.
+
 ## Tag
 
-Each narration step in `Narratore` can be assigned zero or more `Tag`s, that represents additional metadata to take into account when that narration step is received by the `Handler` (see [Running the game](RUNNING_THE_GAME.md) for more details). For example, a `Tag` can be associated with showing some image in the game, or playing a sound, or modifying the font or the message text, or can be used to start a timer or attach some additional information that's relevant to the state of the game in general, but doesn't affect the way some particular narration step is communicated to the player.
+Each narration step in `Narratore` can be equipped with zero or more `Tag`s, that represents additional metadata to take into account when that narration step is received by the `Handler` (see [Running the game](RUNNING_THE_GAME.md) for more details). For example, a `Tag` can be associated with showing some image in the game, or playing a sound, or modifying the font or the message text, or can be used to start a timer or attach some additional information that's relevant to the state of the game in general, but doesn't affect the way some particular narration step is communicated to the player.
 
-The `Tag` type must conform to the `Tagging` protocol, that makes it `Hashable` and `Codable`, and requires a `shouldObserve: Bool` property: if `shouldObserve` is `true` the tag will recorded in the global state of the game, and the count of observations for that tag can always be accessed from the `Script` type.
+The `Tag` type must conform to the `Tagging` protocol, that makes it `Hashable`, `Codable` and `Sendable`, and requires a `shouldObserve: Bool` property: if `shouldObserve` is `true` the tag will be recorded in the global state of the game, and the count of observations for that tag can always be accessed from the `Script` type.
 
 Let's add a simple `Tag` definition to `SimpleSetting`:
 
 ```swift
 public enum SimpleSetting: Setting {
   ...
-  public struct Tag: Tagging & CustomStringConvertible {
+  public struct Tag: Tagging, CustomStringConvertible {
     public var value: String
     public var shouldObserve: Bool
-    
+
     public init(_ value: String, shouldObserve: Bool = false) {
       self.value = value
       self.shouldObserve = shouldObserve
     }
-    
+
     public var description: String {
       value
     }
@@ -120,7 +140,7 @@ public enum SimpleSetting: Setting {
 
 The `World` type should represent the state of the game world. A game in `Narratore` must be started with an initial value for `World`, and it can be easily changed and manipulated during the course of the story, or even by the game engine itself, in case we need to make changes when running a game: for example, if a game has an inventory, and the player can interact with it outside of the story, we can reflect this change to the game world in the `Handler` (see [Running the game](RUNNING_THE_GAME.md)).
 
-The only requirement for `World` is to be `Codable`, because `Narratore` expects the full state of the game (including `World`) to be serialized when running the game, so that after exiting and entering it again, such state can be restored.
+The only requirements for `World` are to be `Sendable` and `Codable`, because `Narratore` expects the full state of the game (including `World`) to be serialized when running the game, so that after exiting and entering it again, such state can be restored.
 
 `World` is an important part of `Narratore`, but there's no need to record everything in it: in fact, `Narratore` already records many aspects of the story, for example the messages a player has read, or the observed tags: in order to see how to keep track of the game state outside of `World`, please check [Writing a story](WRITING_A_STORY.md).
 
@@ -128,20 +148,21 @@ Ideally, a `World` is very specific to a certain type of game setting: for examp
 
 ```swift
 public enum SimpleSetting: Setting {
-  public struct World: Codable {
+  ...
+  public struct World: Codable, Sendable {
     public var value: [Key: Value] = [:]
     public var list: [Key: [Value]] = [:]
-    
+
     public init() {}
 
-    public struct Key: ExpressibleByStringLiteral & CustomStringConvertible & Codable & Equatable & Hashable {
+    public struct Key: ExpressibleByStringLiteral, CustomStringConvertible, Codable, Equatable, Hashable, Sendable {
       public var description: String
       public init(stringLiteral value: String) {
         description = value
       }
     }
 
-    public struct Value: ExpressibleByStringLiteral & CustomStringConvertible & Codable & Equatable {
+    public struct Value: ExpressibleByStringLiteral, CustomStringConvertible, Codable, Equatable, Sendable {
       public var description: String
       public init(stringLiteral value: String) {
         description = value

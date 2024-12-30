@@ -1,7 +1,7 @@
 /// The current state of the narrated story in a game.
 ///
 /// `Script` is part of the `Context`, and thus it can be inspected in each story step.
-public struct Script<Game: Setting>: Codable {
+public struct Script<Game: Setting>: Codable, Sendable {
   /// The count of the narrated messages with an `id` that wasn't `nil`.
   public private(set) var narrated: [Game.Message.ID: Int] = [:]
 
@@ -61,7 +61,7 @@ public struct Script<Game: Setting>: Codable {
 /// - and list of `Message`s: this can be empty, because a narration step could just be deinfed by some `Tag`s;
 /// - a list of `Tag`s, possibly empty;
 /// - an optional `Update` to the game `World` associated with the `Narration` step.
-public struct Narration<Game: Setting> {
+public struct Narration<Game: Setting>: Sendable {
   public var messages: [Game.Message]
   public var tags: [Game.Tag]
   public var update: Update<Game>?
@@ -78,7 +78,7 @@ public struct Narration<Game: Setting> {
 /// `Choice` includes the following properties:
 /// - a list if `Option`s, that __should not be empty__;
 /// - a list of `Tag`s, possibly empty;
-public struct Choice<Game: Setting> {
+public struct Choice<Game: Setting>: Sendable {
   public var options: [Option<Game>]
   public var tags: [Game.Tag]
   public var config: Config
@@ -89,7 +89,7 @@ public struct Choice<Game: Setting> {
     self.config = config
   }
 
-  public struct Config {
+  public struct Config: Sendable {
     public var failIfNoOptions: Bool = false
     public var showIfSingleOption: Bool = false
 
@@ -106,24 +106,24 @@ public struct Choice<Game: Setting> {
 /// - the `Message` associated with that particular option;
 /// - the scene `Step` that must be performed if the option is selected.
 /// - a list of `Tag`s, possibly empty;
-public struct Option<Game: Setting> {
+public struct Option<Game: Setting>: Sendable {
   public let message: Game.Message
   public let step: Step<Game>
   public let tags: [Game.Tag]
 }
 
-public struct TextRequest<Game: Setting> {
+public struct TextRequest<Game: Setting>: Sendable {
   public let message: Game.Message?
-  public let validate: (String) -> Validation
-  public let getStep: (Validated) -> Step<Game>
+  public let validate: @Sendable (String) -> Validation
+  public let getStep: @Sendable (Validated) async -> Step<Game>
   public let tags: [Game.Tag]
 
-  public enum Validation {
+  public enum Validation: Sendable {
     case valid(Validated)
     case invalid(Game.Message?)
   }
 
-  public struct Validated {
+  public struct Validated: Sendable {
     public let text: String
 
     public init(text: String) {
@@ -137,7 +137,7 @@ public struct TextRequest<Game: Setting> {
 /// `Jump` includes the following properties:
 /// - the `Narration` step to present immediately before the scene change;
 /// - the kind of jump between scenes.
-public struct Jump<Game: Setting> {
+public struct Jump<Game: Setting>: Sendable {
   public var narration: Narration<Game>
   public var sceneChange: SceneChange<Game>
 
@@ -148,4 +148,4 @@ public struct Jump<Game: Setting> {
 }
 
 /// A function to update the game `World`.
-public typealias Update<Game: Setting> = (inout Game.World) -> Void
+public typealias Update<Game: Setting> = @Sendable (inout Game.World) async -> Void

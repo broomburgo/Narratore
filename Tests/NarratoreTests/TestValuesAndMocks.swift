@@ -1,4 +1,5 @@
-import Narratore
+public import Narratore
+import Foundation
 
 extension String: Tagging {
   public var shouldObserve: Bool {
@@ -8,8 +9,8 @@ extension String: Tagging {
 
 enum TestGame: Story {
   enum Generate: Generating {
-    static var expectedRandomRatio: Double = 0.5
-    static var expectedUniqueString: String = "expected"
+    nonisolated(unsafe) static var expectedRandomRatio: Double = 0.5
+    nonisolated(unsafe) static var expectedUniqueString: String = "expected"
 
     static func randomRatio() -> Double {
       expectedRandomRatio
@@ -31,7 +32,7 @@ enum TestGame: Story {
     var counter = 0
   }
 
-  static var scenes: [RawScene<TestGame>] = [TestScene1.raw, TestScene2.raw]
+  nonisolated(unsafe) static var scenes: [RawScene<TestGame>] = [TestScene1.raw, TestScene2.raw]
 }
 
 typealias TestPlayer = Player<TestGame>
@@ -40,13 +41,15 @@ struct TestScene1: SceneType {
   typealias Game = TestGame
   typealias Anchor = String
 
+  var id = UUID().uuidString
+
   var title: String
 
   init(title: String = "title") {
     self.title = title
   }
 
-  private var _getSteps: () -> [SceneStep<Self>] = { [.init(
+  private var _getSteps: @Sendable () -> [SceneStep<Self>] = { [.init(
     anchor: nil,
     getStep: .init { _ in
       .init(narration: .init(messages: [.init(id: nil, text: "Test")], tags: [], update: nil))
@@ -57,7 +60,7 @@ struct TestScene1: SceneType {
     _getSteps()
   }
 
-  mutating func updateSteps(@SceneBuilder<Self> _ update: @escaping () -> [SceneStep<Self>]) {
+  mutating func updateSteps(@SceneBuilder<Self> _ update: @escaping @Sendable () -> [SceneStep<Self>]) {
     _getSteps = {
       update()
     }
@@ -84,13 +87,15 @@ struct TestScene2: SceneType {
   typealias Game = TestGame
   typealias Anchor = String
 
+  var id = UUID().uuidString
+
   var title: String
 
   init(title: String = "title") {
     self.title = title
   }
 
-  private var _getSteps: () -> [SceneStep<Self>] = { [.init(
+  private var _getSteps: @Sendable () -> [SceneStep<Self>] = { [.init(
     anchor: nil,
     getStep: .init { _ in
       .init(narration: .init(messages: [.init(id: nil, text: "Test")], tags: [], update: nil))
@@ -101,7 +106,7 @@ struct TestScene2: SceneType {
     _getSteps()
   }
 
-  mutating func updateSteps(@SceneBuilder<Self> _ update: @escaping () -> [SceneStep<Self>]) {
+  mutating func updateSteps(@SceneBuilder<Self> _ update: @escaping @Sendable () -> [SceneStep<Self>]) {
     _getSteps = {
       update()
     }
@@ -126,16 +131,16 @@ struct TestScene2: SceneType {
 
 extension Handler where Self == Handling<TestGame> {
   static func mock(
-    acknowledgeNarration: ((TestPlayer.Narration) async -> Next<TestGame, Void>)? = nil,
-    makeChoice: ((TestPlayer.Choice) async -> Next<TestGame, TestPlayer.Option>)? = nil,
-    answerRequest: ((TestPlayer.TextRequest) async -> Next<Game, TestPlayer.ValidatedText>)? = nil,
-    handleEvent: ((TestPlayer.Event) -> Void)? = nil
+    acknowledgeNarration: (@Sendable (TestPlayer.Narration) async -> Next<TestGame, Void>)? = nil,
+    makeChoice: (@Sendable (TestPlayer.Choice) async -> Next<TestGame, TestPlayer.Option>)? = nil,
+    answerRequest: (@Sendable (TestPlayer.TextRequest) async -> Next<Game, TestPlayer.ValidatedText>)? = nil,
+    handleEvent: (@Sendable (TestPlayer.Event) -> Void)? = nil
   ) -> Handling<TestGame> {
     .init(
-      acknowledgeNarration: acknowledgeNarration ?? { _ in .advance },
-      makeChoice: makeChoice ?? { $0.options.first.map { .advance(with: $0) } ?? .stop },
-      answerRequest: answerRequest ?? {  _ in .stop },
-      handleEvent: handleEvent ?? { _ in }
+      acknowledgeNarration: acknowledgeNarration ?? { @Sendable _ in .advance },
+      makeChoice: makeChoice ?? { @Sendable in $0.options.first.map { .advance(with: $0) } ?? .stop },
+      answerRequest: answerRequest ?? { @Sendable _ in .stop },
+      handleEvent: handleEvent ?? { @Sendable _ in }
     )
   }
 }

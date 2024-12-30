@@ -1,103 +1,111 @@
-/// Build a `SceneStep` out of a series of `Message`s.
-public func tell<Scene: SceneType>(
-  _ anchor: Scene.Anchor? = nil,
-  tags: [Scene.Game.Tag] = [],
-  @MessagesBuilder<Scene.Game> getMessages: @escaping (Context<Scene.Game>) -> [Scene.Game.Message],
-  update: Update<Scene.Game>? = nil
-) -> SceneStep<Scene> {
-  .init(anchor: anchor, getStep: .init {
-    let messages = getMessages($0)
+// MARK: - SceneStep
 
-    return tell(tags: tags, getMessages: {
-      for message in messages {
-        message
+/// The namespace for all functions that can be used in a `SceneBuilder` function.
+///
+/// To add more DSL functions, it should be extended by constraining the `Scene.Game` to the specific `Game` type one is writing.
+public enum DO<Scene: SceneType> {
+  /// Build a `SceneStep` out of a series of `Message`s.
+  public static func tell(
+    anchor: Scene.Anchor? = nil,
+    tags: [Scene.Game.Tag] = [],
+    @MessagesBuilder<Scene.Game> getMessages: @escaping @Sendable (Context<Scene.Game>) async -> [Scene.Game.Message],
+    update: Update<Scene.Game>? = nil
+  ) -> SceneStep<Scene> {
+    .init(
+      anchor: anchor,
+      getStep: .init {
+        let messages = await getMessages($0)
+
+        return .tell(tags: tags, getMessages: {
+          for message in messages {
+            message
+          }
+        }, update: update)
       }
-    }, update: update)
-  })
-}
+    )
+  }
 
-/// Create a `SceneStep` conditionally, based on the current `Context`.
-public func check<Scene: SceneType>(
-  _ anchor: Scene.Anchor? = nil,
-  @StepBuilder<Scene.Game> _ getStep: @escaping (Context<Scene.Game>) -> Step<Scene.Game>
-) -> SceneStep<Scene> {
-  .init(anchor: anchor, getStep: .init(getStep))
-}
+  /// Create a `SceneStep` conditionally, based on the current `Context`.
+  public static func check(
+    anchor: Scene.Anchor? = nil,
+    _ getStep: @escaping @Sendable (Context<Scene.Game>) async -> Step<Scene.Game>
+  ) -> SceneStep<Scene> {
+    .init(anchor: anchor, getStep: .init(getStep))
+  }
 
-/// Update the current `World`.
-public func update<Scene: SceneType>(
-  _ anchor: Scene.Anchor? = nil,
-  _ update: @escaping (inout Scene.Game.World) -> Void
-) -> SceneStep<Scene> {
-  .init(anchor: anchor, getStep: .init { _ in .init(update: update) })
-}
+  /// Update the current `World`.
+  public static func update(
+    anchor: Scene.Anchor? = nil,
+    _ update: @escaping Update<Scene.Game>
+  ) -> SceneStep<Scene> {
+    .init(anchor: anchor, getStep: .init { _ in .init(update: update) })
+  }
 
-/// Make the player choose between options.
-public func choose<Scene: SceneType>(
-  _ anchor: Scene.Anchor? = nil,
-  tags: [Scene.Game.Tag] = [],
-  @OptionsBuilder<Scene.Game> getOptions: @escaping (Context<Scene.Game>) -> [Option<Scene.Game>]
-) -> SceneStep<Scene> {
-  .init(
-    anchor: anchor,
-    getStep: .init {
-      .init(choice: .init(options: getOptions($0), tags: tags))
-    }
-  )
-}
+  /// Make the player choose between options.
+  public static func choose(
+    anchor: Scene.Anchor? = nil,
+    tags: [Scene.Game.Tag] = [],
+    @OptionsBuilder<Scene.Game> getOptions: @escaping @Sendable (Context<Scene.Game>) async -> [Option<Scene.Game>]
+  ) -> SceneStep<Scene> {
+    .init(
+      anchor: anchor,
+      getStep: .init {
+        await .init(choice: .init(options: getOptions($0), tags: tags))
+      }
+    )
+  }
 
-/// Ask the player to enter some text.
-public func requestText<Scene: SceneType>(
-  _ anchor: Scene.Anchor? = nil,
-  tags: [Scene.Game.Tag] = [],
-  @OptionalMessageBuilder<Scene.Game> getMessage: @escaping () -> Scene.Game.Message?,
-  validate: @escaping (String) -> TextRequest<Scene.Game>.Validation,
-  @StepBuilder<Scene.Game> ifValid: @escaping (Context<Scene.Game>, TextRequest<Scene.Game>.Validated) -> Step<Scene.Game>
-) -> SceneStep<Scene> {
-  .init(
-    anchor: anchor,
-    getStep: .init { context in
-      .init(textRequest: .init(
-        message: getMessage(),
-        validate: validate,
-        getStep: { ifValid(context, $0) },
-        tags: tags
-      ))
-    }
-  )
-}
+  /// Ask the player to enter some text.
+  public static func requestText(
+    anchor: Scene.Anchor? = nil,
+    tags: [Scene.Game.Tag] = [],
+    @OptionalMessageBuilder<Scene.Game> getMessage: @escaping @Sendable () -> Scene.Game.Message?,
+    validate: @escaping @Sendable (String) -> TextRequest<Scene.Game>.Validation,
+    ifValid: @escaping @Sendable (Context<Scene.Game>, TextRequest<Scene.Game>.Validated) async -> Step<Scene.Game>
+  ) -> SceneStep<Scene> {
+    .init(
+      anchor: anchor,
+      getStep: .init { context in
+        .init(textRequest: .init(
+          message: getMessage(),
+          validate: validate,
+          getStep: { await ifValid(context, $0) },
+          tags: tags
+        ))
+      }
+    )
+  }
 
-/// Create a `SceneStep` with a jump `Step` and empty `Narration`.
-public func then<Scene: SceneType>(
-  _ getSceneChange: @escaping () -> SceneChange<Scene.Game>
-) -> SceneStep<Scene> {
-  .init(
-    anchor: nil,
-    getStep: .init { _ in
-      .init(
-        jump: .init(
-          narration: .init(
-            messages: [],
-            tags: [],
-            update: nil
-          ),
-          sceneChange: getSceneChange()
+  /// Create a `SceneStep` with a jump `Step` and empty `Narration`.
+  public static func then(
+    _ getSceneChange: @escaping @Sendable () -> SceneChange<Scene.Game>
+  ) -> SceneStep<Scene> {
+    .init(
+      anchor: nil,
+      getStep: .init { _ in
+        .init(
+          jump: .init(
+            narration: .init(
+              messages: [],
+              tags: [],
+              update: nil
+            ),
+            sceneChange: getSceneChange()
+          )
         )
-      )
-    }
-  )
-}
+      }
+    )
+  }
 
-/// Creates a step that will be skipped; useful to establish a simple anchor that will not make the player acknowledge a narration or make a choice.
-public func skip<Scene: SceneType>(_ anchor: Scene.Anchor? = nil) -> SceneStep<Scene> {
-  .init(anchor: anchor, getStep: .init { _ in .skip })
-}
+  /// Creates a step that will be skipped; useful to establish a simple anchor that will not make the player acknowledge a narration or make a choice.
+  public static func skip(anchor: Scene.Anchor? = nil) -> SceneStep<Scene> {
+    .init(anchor: anchor, getStep: .init { _ in .skip })
+  }
 
-/// Groups scene steps together.
-public func group<Scene: SceneType>(@SceneBuilder<Scene> _ getSteps: () -> [SceneStep<Scene>])
-  -> [SceneStep<Scene>]
-{
-  getSteps()
+  /// Groups scene steps together.
+  public static func group(@SceneBuilder<Scene> _ getSteps: () -> [SceneStep<Scene>]) -> [SceneStep<Scene>] {
+    getSteps()
+  }
 }
 
 extension String {
@@ -111,7 +119,12 @@ extension String {
     .init(
       anchor: anchor,
       getStep: .init { _ in
-        self.with(id: id, tags: tags, update: update)
+        .tell(
+          tags: tags,
+          getMessages: { [.init(id: id, text: self)] },
+          update: update,
+          then: nil
+        )
       }
     )
   }
@@ -119,86 +132,41 @@ extension String {
 
 // MARK: - Step
 
-/// Build a `narration` step out of a series of `Message`s.
-public func tell<Game: Setting>(
-  tags: [Game.Tag] = [],
-  @MessagesBuilder<Game> getMessages: () -> [Game.Message],
-  update: Update<Game>? = nil
-) -> Step<Game> {
-  .init(narration: .init(messages: getMessages(), tags: tags, update: update))
-}
-
-/// Build a `choice` step out of a series of `Option`s.
-public func choose<Game: Setting>(
-  tags: [Game.Tag] = [],
-  @OptionsBuilder<Game> getOptions: @escaping () -> [Option<Game>]
-) -> Step<Game> {
-  .init(choice: .init(options: getOptions(), tags: tags))
-}
-
-/// Equivalent to calling `Step.init()`, which produces and empty step that will be skipped, but more ergonomic when used in `StepBuilder`.
-public func skip<Game: Setting>() -> Step<Game> {
-  .skip
-}
-
-extension String {
-  /// Create a `Step` with the `Narration` created from the root `String`.
-  public func with<Game: Setting>(
-    id: Game.Message.ID? = nil,
+extension Step {
+  /// Build a `narration` step out of a series of `Message`s.
+  public static func tell(
     tags: [Game.Tag] = [],
-    update: Update<Game>? = nil
-  ) -> Step<Game> {
-    .init(
-      narration: with(id: id, tags: tags, update: update)
-    )
+    @MessagesBuilder<Game> getMessages: () -> [Game.Message],
+    update: Update<Game>? = nil,
+    then getSceneChange: (() -> SceneChange<Game>)? = nil
+  ) -> Self {
+    let narration = Narration<Game>(messages: getMessages(), tags: tags, update: update)
+
+    return if let sceneChange = getSceneChange?() {
+      .init(jump: .init(
+        narration: narration,
+        sceneChange: sceneChange
+      ))
+    } else {
+      .init(narration: narration)
+    }
   }
 
-  /// Create a `Step` with a `Jump` containing the `Narration` created from the root `String`.
-  public func then<Game: Setting>(
-    _ getSceneChange: () -> SceneChange<Game>
-  ) -> Step<Game> {
-    .init(jump: .init(
-      narration: .init(messages: [.init(id: nil, text: self)], tags: [], update: nil),
-      sceneChange: getSceneChange()
-    ))
-  }
-}
-
-extension Narration {
-  /// Create a `Step` with a `Jump` containing the root `Narration`.
-  public func then(
-    _ getSceneChange: () -> SceneChange<Game>
-  ) -> Step<Game> {
-    .init(jump: .init(
-      narration: self,
-      sceneChange: getSceneChange()
-    ))
-  }
-}
-
-// MARK: - Narration
-
-/// Build a `narration` step out of a series of `Message`s.
-public func tell<Game: Setting>(
-  tags: [Game.Tag] = [],
-  @MessagesBuilder<Game> getMessages: () -> [Game.Message],
-  update: Update<Game>? = nil
-) -> Narration<Game> {
-  .init(messages: getMessages(), tags: tags, update: update)
-}
-
-extension String {
-  /// Create a `Narration` with the root `String` as message text.
-  public func with<Game: Setting>(
-    id: Game.Message.ID? = nil,
+  /// Build a `choice` step out of a series of `Option`s.
+  public static func choose(
     tags: [Game.Tag] = [],
-    update: Update<Game>? = nil
-  ) -> Narration<Game> {
-    .init(
-      messages: [.init(id: id, text: self)],
-      tags: tags,
-      update: update
-    )
+    @OptionsBuilder<Game> getOptions: @escaping () -> [Option<Game>]
+  ) -> Self {
+    .init(choice: .init(options: getOptions(), tags: tags))
+  }
+
+  /// Quick version of `if { someStep } else { .skip }`, useful for simple conditions and no particular `Step` in the `else` branch.
+  public static func inCase(_ condition: Bool, getStep: () -> Self) -> Self {
+    if condition {
+      getStep()
+    } else {
+      .skip
+    }
   }
 }
 
@@ -208,7 +176,7 @@ extension String {
   /// Create an `Option` with root the `String` as message text.
   public func onSelect<Game: Setting>(
     tags: [Game.Tag] = [],
-    @StepBuilder<Game> getStep: () -> Step<Game>
+    getStep: () -> Step<Game>
   ) -> Option<Game> {
     .init(
       message: .init(id: nil, text: self),

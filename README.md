@@ -6,9 +6,10 @@ With `Narratore` you can create stories using a DSL that allows to focus on the 
 
 The library also makes it easy to run a story, with a callback-based handler.
 
-Here's a taste of a minimal definition for a game with `Narratore`:
+Here's an example of a minimal definition for a game with `Narratore`:
 
 ```swift
+import Foundation
 import Narratore
 
 // ------ Define a game setting ------ //
@@ -27,11 +28,6 @@ enum MyGame: Setting {
   struct Message: Messaging {
     var id: String?
     var text: String
-
-    init(id: ID?, text: String) {
-      self.id = id
-      self.text = text
-    }
   }
 
   struct Tag: Tagging {
@@ -56,8 +52,8 @@ extension SceneType {
 extension MyGame: Story {
   static let scenes: [RawScene<MyGame>] = [
     MyFirstScene.raw,
-    MySecondScene.Main.raw,
-    MySecondScene.Other.raw,
+    MySecondScene_Main.raw,
+    MySecondScene_Other.raw,
   ]
 }
 
@@ -69,55 +65,56 @@ struct MyFirstScene: SceneType {
     
     "This is your new game, built with narratore".with(tags: [.init("Let's play some sound effect!")])
     
-    check {
-      if $0.world.isEnjoyable {
-        "Enjoy!"
+    DO.check {
+      .inCase($0.world.isEnjoyable) {
+        .tell { "Enjoy!" }
       }
     }
     
     "Now choose".with(anchor: "We could jump right here from anywhere")
     
-    choose { _ in
+    DO.choose { _ in
       "Go to second scene, main path".onSelect {
-        "Let's go to the second scene!"
-        .with(id: "We can keep track of this message")
-        .then {
-          .transitionTo(MySecondScene.Main(magicNumber: 42))  
+        .tell {
+          "Let's go to the second scene!"
+            .with(id: "We can keep track of this message")
+        } then: {
+          .transitionTo(MySecondScene_Main(magicNumber: 42))  
         }
       }
 
       "Go to second scene, alternate path".onSelect {
-        "Going to the alternate path of the second scene".then {
-          .transitionTo(MySecondScene.Other())
+        .tell {
+          "Going to the alternate path of the second scene"
+        } then: {
+          .transitionTo(MySecondScene_Other())
         }
       }
     }
   }
 }
 
-enum MySecondScene {      
-  struct Main: SceneType {
-    var magicNumber: Int
+struct MySecondScene_Main: SceneType {
+  var magicNumber: Int
 
-    var steps: [SceneStep<Self>] {
-      "Welcome to the second scene"
-      
-      if magicNumber == 42 {
-        "The magic number is \(magicNumber)"
-      } else {
-        "The magic number doesn't look right..."
-      }
-      
-      "Hope you'll find this useful!"
+  var steps: [SceneStep<Self>] {
+    "Welcome to the second scene"
+    
+    if magicNumber == 42 {
+      "The magic number is \(magicNumber)"
+    } else {
+      "The magic number doesn't look right..."
     }
+    
+    "Hope you'll find this useful!"
   }
-  
-  struct Other: SceneType {
-    var steps: [SceneStep<Self>] {
-      "I see you chose the alternate path"
-      
-      "Bad luck!"
-    }
+}
+
+struct MySecondScene_Other: SceneType {
+  var steps: [SceneStep<Self>] {
+    "I see you chose the alternate path"
+    
+    "Bad luck!"
   }
 }
 
@@ -184,11 +181,11 @@ final class MyHandler: Handler {
 @main
 enum Main {
   static func main() async {
-    await Runner<MyGame>.init(
-      handler: MyHandler.init(),
+    await Runner<MyGame>(
+      handler: MyHandler(),
       status: .init(
         world: .init(),
-        scene: MyFirstScene.init()
+        scene: MyFirstScene()
       )
     ).start()
   }
@@ -216,8 +213,6 @@ The linked docs progressively build a basic game setting, a short story, a simpl
 
 The main purpose of the companion package is to document the features of `Narratore`; nevertheless, most of its code is generic and reusable, and can be used to create games: please refer to the companion package [README](https://github.com/broomburgo/SimpleGame) to learn how to use it in your projects.
 
-Finally, [DSL reference](Docs/DSL_REFERENCE.md) contains a quick reference to the `Narratore` DSL, that is, the possible commands that one can use to write a story.
-
 Thanks for checking out `Narratore`, I hope you'll have fun with it!
 
 ## Requirements
@@ -226,4 +221,4 @@ Thanks for checking out `Narratore`, I hope you'll have fun with it!
 
 ## Acknowledgments
 
-`Narratore` was heavily inspired by [Ink](https://www.inklestudios.com/ink/), and its initial purpose was to be a similar story creation engine, but with the possibility of defining stories in Swift, instead of using a markup language. Nevertheless, the Ink specification was a strong inspiration for the features of `Narratore`.
+`Narratore` is heavily inspired by [Ink](https://www.inklestudios.com/ink/), and its initial purpose was to be a similar story creation engine, but with the possibility of defining stories in Swift, instead of using a markup language. Nevertheless, the Ink specification was a strong inspiration for the features of `Narratore`.
