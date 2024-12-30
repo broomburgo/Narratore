@@ -213,8 +213,6 @@ The linked docs progressively build a basic game setting, a short story, a simpl
 
 The main purpose of the companion package is to document the features of `Narratore`; nevertheless, most of its code is generic and reusable, and can be used to create games: please refer to the companion package [README](https://github.com/broomburgo/SimpleGame) to learn how to use it in your projects.
 
-Finally, [DSL reference](Docs/DSL_REFERENCE.md) contains a quick reference to the `Narratore` DSL, that is, the possible commands that one can use to write a story.
-
 Thanks for checking out `Narratore`, I hope you'll have fun with it!
 
 ## Requirements
